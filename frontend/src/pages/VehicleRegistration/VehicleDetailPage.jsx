@@ -322,6 +322,36 @@ const VehicleDetailPage = () => {
     [rcFields]
   )
 
+  const relatedDocumentRows = useMemo(() => {
+    if (!records) return []
+
+    const documentConfigs = [
+      { key: 'fitness', label: 'Fitness', dateFromKey: 'validFrom', dateToKey: 'validTo', documentKey: 'fitnessDocument' },
+      { key: 'puc', label: 'PUC', dateFromKey: 'validFrom', dateToKey: 'validTo', documentKey: 'pucDocument' },
+      { key: 'tax', label: 'Tax', dateFromKey: 'taxFrom', dateToKey: 'taxTo', documentKey: 'taxDocument' },
+      { key: 'gps', label: 'GPS', dateFromKey: 'validFrom', dateToKey: 'validTo', documentKey: 'gpsDocument' },
+      { key: 'insurance', label: 'Insurance', dateFromKey: 'validFrom', dateToKey: 'validTo', documentKey: 'insuranceDocument' },
+    ]
+
+    return documentConfigs.flatMap(({ key, label, dateFromKey, dateToKey, documentKey }) =>
+      (records[key] || [])
+        .filter(record => record?.[documentKey])
+        .map((record, index) => {
+          const documentUrl = getDocumentUrl(record[documentKey])
+          const isPdf = documentUrl.toLowerCase().includes('.pdf') || documentUrl.startsWith('data:application/pdf')
+
+          return {
+            id: record._id || `${key}-${index}`,
+            type: label,
+            validFrom: record[dateFromKey] || 'N/A',
+            validTo: record[dateToKey] || 'N/A',
+            documentUrl,
+            isPdf,
+          }
+        })
+    )
+  }, [records])
+
   if (loading) {
     return (
       <div className='min-h-screen bg-[radial-gradient(circle_at_top,_#eff6ff,_#f8fafc_45%,_#ffffff_100%)] px-4 py-8'>
@@ -411,22 +441,54 @@ const VehicleDetailPage = () => {
           </div>
         </section>
 
-        <div className='mt-6 grid gap-6'>
-          {sectionConfig.map((section) => (
-            <RecordSection
-              key={section.key}
-              title={section.title}
-              records={records[section.key] || []}
-              dateFromKey={section.dateFromKey}
-              dateToKey={section.dateToKey}
-              dateFromLabel={section.dateFromLabel}
-              dateToLabel={section.dateToLabel}
-              accent={section.accent}
-              emptyText={section.emptyText}
-              extraFields={section.extraFields}
-            />
-          ))}
-        </div>
+        <section className='mt-6 overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_24px_70px_-48px_rgba(15,23,42,0.55)]'>
+          <div className='border-b border-slate-200 px-5 py-5'>
+            <p className='text-[11px] font-bold uppercase tracking-[0.24em] text-slate-500'>Related Records</p>
+            <h2 className='mt-1 text-xl font-black text-slate-900'>Vehicle Documents</h2>
+          </div>
+
+          {relatedDocumentRows.length === 0 ? (
+            <div className='px-5 py-8 text-sm font-semibold text-slate-500'>No related document records found for this vehicle.</div>
+          ) : (
+            <div className='overflow-x-auto'>
+              <table className='min-w-full divide-y divide-slate-200'>
+                <thead className='bg-slate-50'>
+                  <tr>
+                    <th className='px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500'>Document Type</th>
+                    <th className='px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500'>Valid From</th>
+                    <th className='px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500'>Valid To</th>
+                    <th className='px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500'>Document Image</th>
+                  </tr>
+                </thead>
+                <tbody className='divide-y divide-slate-200 bg-white'>
+                  {relatedDocumentRows.map((row) => (
+                    <tr key={row.id} className='align-top'>
+                      <td className='px-4 py-4 text-sm font-bold text-slate-900'>{row.type}</td>
+                      <td className='px-4 py-4 text-sm font-semibold text-slate-700'>{row.validFrom}</td>
+                      <td className='px-4 py-4 text-sm font-semibold text-slate-700'>{row.validTo}</td>
+                      <td className='px-4 py-4'>
+                        {row.isPdf ? (
+                          <a
+                            href={row.documentUrl}
+                            target='_blank'
+                            rel='noreferrer'
+                            className='inline-flex items-center rounded-full bg-slate-900 px-4 py-2 text-xs font-bold text-white'
+                          >
+                            Open PDF
+                          </a>
+                        ) : (
+                          <a href={row.documentUrl} target='_blank' rel='noreferrer' className='block w-fit overflow-hidden rounded-2xl border border-slate-200 bg-slate-50'>
+                            <img src={row.documentUrl} alt={`${row.type} document`} className='h-24 w-24 object-cover' />
+                          </a>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
       </div>
     </div>
   )

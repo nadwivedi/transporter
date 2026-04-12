@@ -1078,41 +1078,53 @@ const RegisterVehicleModal = ({ isOpen, onClose, onSuccess, editData }) => {
 
           if (response.data.success && response.data.data) {
             const resultData = response.data.data;
-            
-            // Map the result properties to formData safely
+
+            const normalizedRegistrationNumber = resultData.registrationNumber
+              ? resultData.registrationNumber.toUpperCase()
+              : formData.registrationNumber
+
+            const uploadResponse = await axios.post(
+              `${API_URL}/api/upload/rc-image`,
+              {
+                imageData: base64String,
+                vehicleRegistrationId: editData?._id || null,
+                vehicleNumber: normalizedRegistrationNumber
+              },
+              { withCredentials: true }
+            )
+
+            if (!uploadResponse.data?.success) {
+              throw new Error(uploadResponse.data?.message || 'Failed to upload RC image.')
+            }
+
+            const uploadedRcPath = uploadResponse.data.data.path
+
+            // Map OCR result first, then attach saved RC image path
             setFormData(prev => {
-              const updated = { ...prev };
+              const updated = { ...prev, rcImage: uploadedRcPath }
               Object.keys(resultData).forEach(key => {
                 if (resultData[key] && Object.prototype.hasOwnProperty.call(updated, key)) {
-                  // Don't overwrite dateOfRegistration if already properly set, just take it if possible
                   if (key === 'dateOfRegistration') {
-                      const normalizedStr = normalizeAIExtractedDate(resultData[key]);
-                      const formatted = handleSmartDateInput(normalizedStr, '');
-                      if (formatted) updated[key] = formatted;
+                    const normalizedStr = normalizeAIExtractedDate(resultData[key])
+                    const formatted = handleSmartDateInput(normalizedStr, '')
+                    if (formatted) updated[key] = formatted
                   } else {
-                      updated[key] = resultData[key].toUpperCase(); // usually we store uppercase
+                    updated[key] = resultData[key].toUpperCase()
                   }
                 }
-              });
+              })
 
-              // Also ensure vehicle validation is triggered if registrationNumber changes
               if (resultData.registrationNumber) {
-                 const validation = validateVehicleNumberRealtime(resultData.registrationNumber);
-                 setVehicleValidation(validation);
+                const validation = validateVehicleNumberRealtime(resultData.registrationNumber)
+                setVehicleValidation(validation)
               }
-              
-              return updated;
-            });
-            
-            // Set the RC image preview as well so user sees what they uploaded in the normal documents section
-            if(!formData.rcImage) {
-                setRcImagePreview(base64String);
-                toast.dismiss(updateToast);
-                toast.success('RC Details Extracted Successfully!', { position: 'top-right', autoClose: 3000 });
-            } else {
-                toast.dismiss(updateToast);
-                toast.success('RC Details Extracted Successfully!', { position: 'top-right', autoClose: 3000 });
-            }
+
+              return updated
+            })
+
+            setRcImagePreview(base64String)
+            toast.dismiss(updateToast)
+            toast.success('RC details extracted first, then RC image saved successfully!', { position: 'top-right', autoClose: 3000 })
 
           } else {
             toast.dismiss(updateToast);

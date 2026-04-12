@@ -5,6 +5,67 @@ const Puc = require('../models/Puc')
 const Insurance = require('../models/Insurance')
 const Gps = require('../models/Gps')
 
+const normalizeNumberField = (value) => {
+  if (value === undefined || value === null || value === '') return undefined
+
+  if (typeof value === 'number') {
+    return Number.isNaN(value) ? undefined : value
+  }
+
+  const cleaned = String(value).trim()
+  if (!cleaned) return undefined
+
+  const numeric = Number(cleaned)
+  if (!Number.isNaN(numeric)) return numeric
+
+  return undefined
+}
+
+const normalizeManufactureYear = (value) => {
+  if (value === undefined || value === null || value === '') return undefined
+
+  if (typeof value === 'number') {
+    return Number.isNaN(value) ? undefined : value
+  }
+
+  const cleaned = String(value).trim()
+  if (!cleaned) return undefined
+
+  const exactYearMatch = cleaned.match(/\b(19|20)\d{2}\b/g)
+  if (exactYearMatch?.length) {
+    return Number(exactYearMatch[exactYearMatch.length - 1])
+  }
+
+  const numeric = Number(cleaned)
+  if (!Number.isNaN(numeric)) return numeric
+
+  return undefined
+}
+
+const normalizeVehiclePayload = (payload) => {
+  const normalized = { ...payload }
+
+  if (normalized.registrationNumber || normalized.vehicleNumber) {
+    normalized.registrationNumber = (normalized.registrationNumber || normalized.vehicleNumber || '').trim().toUpperCase()
+  }
+
+  normalized.seatingCapacity = normalizeNumberField(normalized.seatingCapacity)
+  normalized.ladenWeight = normalizeNumberField(normalized.ladenWeight)
+  normalized.unladenWeight = normalizeNumberField(normalized.unladenWeight)
+  normalized.numberOfCylinders = normalizeNumberField(normalized.numberOfCylinders)
+  normalized.cubicCapacity = normalizeNumberField(normalized.cubicCapacity)
+  normalized.wheelBase = normalizeNumberField(normalized.wheelBase)
+  normalized.manufactureYear = normalizeManufactureYear(normalized.manufactureYear)
+
+  Object.keys(normalized).forEach((key) => {
+    if (normalized[key] === undefined) {
+      delete normalized[key]
+    }
+  })
+
+  return normalized
+}
+
 const buildSearchFilter = (search) => {
   if (!search || !search.trim()) return {}
 
@@ -155,11 +216,10 @@ const checkVehicleExists = async (req, res) => {
 
 const createVehicle = async (req, res) => {
   try {
-    const payload = {
+    const payload = normalizeVehiclePayload({
       ...req.body,
       userId: req.body.userId || '000000000000000000000001',
-      registrationNumber: (req.body.registrationNumber || req.body.vehicleNumber || '').trim().toUpperCase(),
-    }
+    })
 
     if (!payload.registrationNumber || !payload.chassisNumber) {
       return res.status(400).json({ success: false, message: 'registrationNumber and chassisNumber are required' })
@@ -178,13 +238,9 @@ const createVehicle = async (req, res) => {
 
 const updateVehicle = async (req, res) => {
   try {
-    const payload = {
+    const payload = normalizeVehiclePayload({
       ...req.body,
-    }
-
-    if (payload.registrationNumber || payload.vehicleNumber) {
-      payload.registrationNumber = (payload.registrationNumber || payload.vehicleNumber || '').trim().toUpperCase()
-    }
+    })
 
     const vehicle = await Vehicle.findByIdAndUpdate(req.params.id, payload, {
       new: true,

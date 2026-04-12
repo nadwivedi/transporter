@@ -7,13 +7,14 @@ const taxRoutes = require('./routes/taxRoutes')
 const pucRoutes = require('./routes/pucRoutes')
 const gpsRoutes = require('./routes/gpsRoutes')
 const ocrRoutes = require('./routes/ocrRoutes')
+const uploadRoutes = require('./routes/uploadRoutes')
 
 const app = express()
 const PORT = process.env.PORT || 5000
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/transport'
 
-app.use(express.json({ limit: '10mb' }))
-app.use(express.urlencoded({ extended: true }))
+app.use(express.json({ limit: '25mb' }))
+app.use(express.urlencoded({ extended: true, limit: '25mb' }))
 
 app.use((req, res, next) => {
   const origin = req.headers.origin || '*'
@@ -40,6 +41,7 @@ app.use('/api/tax', taxRoutes)
 app.use('/api/puc', pucRoutes)
 app.use('/api/gps', gpsRoutes)
 app.use('/api/ocr', ocrRoutes)
+app.use('/api/upload', uploadRoutes)
 
 mongoose
   .connect(MONGODB_URI)
