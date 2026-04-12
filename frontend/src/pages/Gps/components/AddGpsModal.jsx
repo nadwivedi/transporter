@@ -248,6 +248,14 @@ const AddGpsModal = ({ isOpen, onClose, onSubmit, prefilledVehicleNumber = '', p
               return updated
             })
             setTimeout(() => { isOcrUpdate.current = false }, 200)
+            setUploadedGpsDocument(prev => {
+              if (prev?.previewUrl) URL.revokeObjectURL(prev.previewUrl)
+              return {
+                name: fileToProcess.name || 'gps-document',
+                type: fileToProcess.type === 'application/pdf' ? 'pdf' : 'image',
+                previewUrl: URL.createObjectURL(fileToProcess)
+              }
+            })
             toast.dismiss(updateToast)
             toast.success('GPS details extracted successfully!', { position: 'top-right', autoClose: 3000 })
           } else {
@@ -274,10 +282,6 @@ const AddGpsModal = ({ isOpen, onClose, onSubmit, prefilledVehicleNumber = '', p
     if (!file) return
     if (file.type === 'application/pdf') {
       setUploadedGpsFile(file)
-      setUploadedGpsDocument(prev => {
-        if (prev?.previewUrl) URL.revokeObjectURL(prev.previewUrl)
-        return { name: file.name, type: 'pdf', previewUrl: URL.createObjectURL(file) }
-      })
       e.target.value = ''
       await processExtraction(file)
       return
@@ -293,10 +297,6 @@ const AddGpsModal = ({ isOpen, onClose, onSubmit, prefilledVehicleNumber = '', p
   const handleScannerConfirm = async (processedImageFile) => {
     setScanningFile(null)
     setUploadedGpsFile(processedImageFile)
-    setUploadedGpsDocument(prev => {
-      if (prev?.previewUrl) URL.revokeObjectURL(prev.previewUrl)
-      return { name: processedImageFile.name || 'gps-document.jpg', type: 'image', previewUrl: URL.createObjectURL(processedImageFile) }
-    })
     await processExtraction(processedImageFile)
   }
 

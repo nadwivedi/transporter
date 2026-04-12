@@ -19,6 +19,11 @@ const InsuranceSchema = new mongoose.Schema({
     trim: true
   },
 
+  mobileNumber: {
+    type: String,
+    trim: true
+  },
+
   // Vehicle Information
   vehicleNumber: {
     type: String,
@@ -38,6 +43,10 @@ const InsuranceSchema = new mongoose.Schema({
     required: true
   },
 
+  issueDate: {
+    type: String
+  },
+
   // Renewal status - set to true when this insurance has been renewed
   isRenewed: {
     type: Boolean,
@@ -49,6 +58,34 @@ const InsuranceSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+
+  totalFee: {
+    type: Number,
+    default: 0
+  },
+
+  paid: {
+    type: Number,
+    default: 0
+  },
+
+  balance: {
+    type: Number,
+    default: 0
+  },
+
+  feeBreakup: [
+    {
+      name: {
+        type: String,
+        trim: true
+      },
+      amount: {
+        type: Number,
+        default: 0
+      }
+    }
+  ],
 
   // Additional Information
   remarks: {

@@ -205,10 +205,23 @@ const gpsOcr = async (req, res) => {
   return processOcrRequest(req, res, prompt, template)
 }
 
+const insuranceOcr = async (req, res) => {
+  const prompt = 'Extract the details from this vehicle insurance policy/document. Extract vehicle number, policy number, policy holder name, valid from date, and valid to date only. Map the insured or proposer name to policyHolderName. Do not invent values.'
+  const template = `{
+  "vehicleNumber": "",
+  "policyNumber": "",
+  "policyHolderName": "",
+  "validFrom": "",
+  "validTo": ""
+}`
+  return processOcrRequest(req, res, prompt, template)
+}
+
 module.exports = {
   rcOcr,
   taxOcr,
   fitnessOcr,
   pucOcr,
   gpsOcr,
+  insuranceOcr,
 }

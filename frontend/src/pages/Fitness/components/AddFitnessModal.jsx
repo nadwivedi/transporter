@@ -25,7 +25,15 @@ const AddFitnessModal = ({ isOpen, onClose, onSubmit, prefilledVehicleNumber = '
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [scanningFile, setScanningFile] = useState(null);
   const [isExtractingFitness, setIsExtractingFitness] = useState(false);
+  const [uploadedFitnessDocument, setUploadedFitnessDocument] = useState(null);
+  const [uploadedFitnessFile, setUploadedFitnessFile] = useState(null);
   const isOcrUpdate = useRef(false);
+
+  useEffect(() => {
+    return () => {
+      if (uploadedFitnessDocument?.previewUrl) URL.revokeObjectURL(uploadedFitnessDocument.previewUrl);
+    };
+  }, [uploadedFitnessDocument]);
 
   // Reset form when modal closes or when prefilled values change
   useEffect(() => {
@@ -45,6 +53,11 @@ const AddFitnessModal = ({ isOpen, onClose, onSubmit, prefilledVehicleNumber = '
       setSelectedDropdownIndex(0);
       setScanningFile(null);
       setIsExtractingFitness(false);
+      setUploadedFitnessDocument(prev => {
+        if (prev?.previewUrl) URL.revokeObjectURL(prev.previewUrl);
+        return null;
+      });
+      setUploadedFitnessFile(null);
     }
   }, [isOpen, prefilledVehicleNumber, prefilledOwnerName, prefilledMobileNumber]);
 
@@ -371,11 +384,11 @@ const AddFitnessModal = ({ isOpen, onClose, onSubmit, prefilledVehicleNumber = '
     if (!file) return;
 
     if (file.type === 'application/pdf') {
-       // Direct upload to backend for parsing
+       setUploadedFitnessFile(file);
        e.target.value = '';
        await processExtraction(file);
     } else if (file.type.startsWith('image/')) {
-       // Send to scanner preview
+       setUploadedFitnessFile(file);
        setScanningFile(file);
        e.target.value = '';
     } else {
@@ -386,6 +399,7 @@ const AddFitnessModal = ({ isOpen, onClose, onSubmit, prefilledVehicleNumber = '
 
   const handleScannerConfirm = async (processedImageFile) => {
     setScanningFile(null);
+    setUploadedFitnessFile(processedImageFile);
     await processExtraction(processedImageFile);
   }
 
@@ -436,6 +450,15 @@ const AddFitnessModal = ({ isOpen, onClose, onSubmit, prefilledVehicleNumber = '
             // Release the block after rendering
             setTimeout(() => { isOcrUpdate.current = false; }, 200);
 
+            setUploadedFitnessDocument(prev => {
+              if (prev?.previewUrl) URL.revokeObjectURL(prev.previewUrl);
+              return {
+                name: fileToProcess.name || 'fitness-document',
+                type: fileToProcess.type === 'application/pdf' ? 'pdf' : 'image',
+                previewUrl: URL.createObjectURL(fileToProcess)
+              };
+            });
+
             toast.dismiss(updateToast);
             toast.success('Fitness Details Extracted Successfully!', { position: 'top-right', autoClose: 3000 });
 
@@ -483,6 +506,15 @@ const AddFitnessModal = ({ isOpen, onClose, onSubmit, prefilledVehicleNumber = '
       validFrom: formData.validFrom,
       validTo: formData.validTo
     };
+
+    if (uploadedFitnessFile) {
+      dataToSubmit.fitnessDocumentData = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(uploadedFitnessFile);
+      });
+    }
 
     // Make API call
     setIsSubmitting(true);
@@ -743,6 +775,28 @@ const AddFitnessModal = ({ isOpen, onClose, onSubmit, prefilledVehicleNumber = '
               </div>
             </div>
           </div>
+
+          {uploadedFitnessDocument && (
+            <div className='bg-gradient-to-r from-slate-50 to-indigo-50 border-2 border-slate-200 rounded-xl p-3 md:p-6 mb-4 md:mb-6'>
+              <h3 className='text-base md:text-lg font-bold text-gray-800 mb-3 md:mb-4 flex items-center gap-2'>
+                <span className='bg-slate-700 text-white w-6 h-6 md:w-8 md:h-8 rounded-full flex items-center justify-center text-xs md:text-sm'>3</span>
+                Uploaded Fitness Document
+              </h3>
+              <div className='mb-3 flex items-center justify-between gap-3 rounded-lg bg-white/80 px-3 py-2 border border-slate-200'>
+                <div className='min-w-0'>
+                  <p className='text-sm font-semibold text-slate-800 truncate'>{uploadedFitnessDocument.name}</p>
+                  <p className='text-xs text-slate-500'>{uploadedFitnessDocument.type === 'pdf' ? 'PDF preview' : 'Image preview'}</p>
+                </div>
+              </div>
+              {uploadedFitnessDocument.type === 'pdf' ? (
+                <iframe src={uploadedFitnessDocument.previewUrl} title='Uploaded Fitness PDF' className='w-full h-80 rounded-xl border border-slate-200 bg-white' />
+              ) : (
+                <div className='rounded-xl border border-slate-200 bg-white p-2'>
+                  <img src={uploadedFitnessDocument.previewUrl} alt='Uploaded Fitness document' className='w-full max-h-80 object-contain rounded-lg' />
+                </div>
+              )}
+            </div>
+          )}
 
           </div>
 

@@ -339,10 +339,11 @@ const VehicleDetailPage = () => {
 
     return documentConfigs.flatMap(({ key, label, dateFromKey, dateToKey, documentKey }) =>
       (records[key] || [])
-        .filter(record => record?.[documentKey])
         .map((record, index) => {
           const documentUrl = getDocumentUrl(record[documentKey])
-          const isPdf = documentUrl.toLowerCase().includes('.pdf') || documentUrl.startsWith('data:application/pdf')
+          const isPdf = documentUrl
+            ? documentUrl.toLowerCase().includes('.pdf') || documentUrl.startsWith('data:application/pdf')
+            : false
 
           return {
             id: record._id || `${key}-${index}`,
@@ -351,6 +352,7 @@ const VehicleDetailPage = () => {
             validTo: record[dateToKey] || 'N/A',
             documentUrl,
             isPdf,
+            hasDocument: Boolean(documentUrl),
           }
         })
     )
@@ -385,53 +387,57 @@ const VehicleDetailPage = () => {
   const vehicleNumber = vehicle.registrationNumber || vehicle.vehicleNumber || 'N/A'
   const rcImageUrl = getDocumentUrl(vehicle.rcImage)
   const rcImageIsPdf = rcImageUrl && (rcImageUrl.toLowerCase().includes('.pdf') || rcImageUrl.startsWith('data:application/pdf'))
-  const handleShareRc = async () => {
-    if (!rcImageUrl) {
-      toast.error('No RC document available to share.', { position: 'top-right', autoClose: 2500 })
+  const handleShareDocument = async (documentUrl, isPdf, title) => {
+    if (!documentUrl) {
+      toast.error('No document available to share.', { position: 'top-right', autoClose: 2500 })
       return
     }
 
     try {
       if (navigator.share) {
-        if (rcImageUrl.startsWith('data:')) {
-          const response = await fetch(rcImageUrl)
+        if (documentUrl.startsWith('data:')) {
+          const response = await fetch(documentUrl)
           const blob = await response.blob()
-          const extension = rcImageIsPdf ? 'pdf' : 'jpg'
-          const mimeType = rcImageIsPdf ? 'application/pdf' : (blob.type || 'image/jpeg')
-          const shareFile = new File([blob], `${vehicleNumber.replace(/\s+/g, '-')}-rc.${extension}`, { type: mimeType })
+          const extension = isPdf ? 'pdf' : 'jpg'
+          const mimeType = isPdf ? 'application/pdf' : (blob.type || 'image/jpeg')
+          const shareFile = new File([blob], `${vehicleNumber.replace(/\s+/g, '-')}-${title.toLowerCase()}.${extension}`, { type: mimeType })
 
           if (navigator.canShare && navigator.canShare({ files: [shareFile] })) {
             await navigator.share({
-              title: `${vehicleNumber} RC Document`,
-              text: `RC document for vehicle ${vehicleNumber}`,
+              title: `${vehicleNumber} ${title} Document`,
+              text: `${title} document for vehicle ${vehicleNumber}`,
               files: [shareFile],
             })
             return
           }
         } else {
           await navigator.share({
-            title: `${vehicleNumber} RC Document`,
-            text: `RC document for vehicle ${vehicleNumber}`,
-            url: rcImageUrl,
+            title: `${vehicleNumber} ${title} Document`,
+            text: `${title} document for vehicle ${vehicleNumber}`,
+            url: documentUrl,
           })
           return
         }
       }
 
-      if (!rcImageUrl.startsWith('data:')) {
-        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(`RC document for vehicle ${vehicleNumber}\n${rcImageUrl}`)}`
+      if (!documentUrl.startsWith('data:')) {
+        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(`${title} document for vehicle ${vehicleNumber}\n${documentUrl}`)}`
         window.open(whatsappUrl, '_blank', 'noopener,noreferrer')
         return
       }
 
-      toast.info('Direct sharing for this RC file works on browsers that support the native share option.', {
+      toast.info('Direct sharing for this file works on browsers that support the native share option.', {
         position: 'top-right',
         autoClose: 3500,
       })
     } catch (error) {
-      console.error('Error sharing RC document:', error)
-      toast.error('Failed to share RC document.', { position: 'top-right', autoClose: 2500 })
+      console.error('Error sharing document:', error)
+      toast.error('Failed to share document.', { position: 'top-right', autoClose: 2500 })
     }
+  }
+
+  const handleShareRc = async () => {
+    await handleShareDocument(rcImageUrl, rcImageIsPdf, 'RC')
   }
 
   return (
@@ -518,12 +524,11 @@ const VehicleDetailPage = () => {
 
         <section className='mt-6 overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_24px_70px_-48px_rgba(15,23,42,0.55)]'>
           <div className='border-b border-slate-200 px-5 py-5'>
-            <p className='text-[11px] font-bold uppercase tracking-[0.24em] text-slate-500'>Related Records</p>
-            <h2 className='mt-1 text-xl font-black text-slate-900'>Vehicle Documents</h2>
+            <h2 className='text-xl font-black text-slate-900'>Vehicle Documents</h2>
           </div>
 
           {relatedDocumentRows.length === 0 ? (
-            <div className='px-5 py-8 text-sm font-semibold text-slate-500'>No related document records found for this vehicle.</div>
+            <div className='px-5 py-8 text-sm font-semibold text-slate-500'>No related records found for this vehicle.</div>
           ) : (
             <div className='overflow-x-auto'>
               <table className='min-w-full divide-y divide-slate-200'>
@@ -539,22 +544,46 @@ const VehicleDetailPage = () => {
                   {relatedDocumentRows.map((row) => (
                     <tr key={row.id} className='align-top'>
                       <td className='px-4 py-4 text-sm font-bold text-slate-900'>{row.type}</td>
-                      <td className='px-4 py-4 text-sm font-semibold text-slate-700'>{row.validFrom}</td>
-                      <td className='px-4 py-4 text-sm font-semibold text-slate-700'>{row.validTo}</td>
+                      <td className='px-4 py-4 text-sm font-bold text-emerald-700'>{row.validFrom}</td>
+                      <td className='px-4 py-4 text-sm font-bold text-red-600'>{row.validTo}</td>
                       <td className='px-4 py-4'>
-                        {row.isPdf ? (
-                          <a
-                            href={row.documentUrl}
-                            target='_blank'
-                            rel='noreferrer'
-                            className='inline-flex items-center rounded-full bg-slate-900 px-4 py-2 text-xs font-bold text-white'
-                          >
-                            Open PDF
-                          </a>
+                        {!row.hasDocument ? (
+                          <span className='text-sm font-semibold text-slate-400'>No document</span>
+                        ) : row.isPdf ? (
+                          <div className='flex items-center gap-2'>
+                            <a
+                              href={row.documentUrl}
+                              target='_blank'
+                              rel='noreferrer'
+                              className='inline-flex items-center rounded-full bg-slate-900 px-4 py-2 text-xs font-bold text-white'
+                            >
+                              Open PDF
+                            </a>
+                            <button
+                              type='button'
+                              onClick={() => handleShareDocument(row.documentUrl, row.isPdf, row.type)}
+                              className='inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-900 transition hover:bg-slate-100'
+                              title={`Share ${row.type}`}
+                              aria-label={`Share ${row.type}`}
+                            >
+                              <Share className='h-4 w-4' />
+                            </button>
+                          </div>
                         ) : (
-                          <a href={row.documentUrl} target='_blank' rel='noreferrer' className='block w-fit overflow-hidden rounded-2xl border border-slate-200 bg-slate-50'>
-                            <img src={row.documentUrl} alt={`${row.type} document`} className='h-24 w-24 object-cover' />
-                          </a>
+                          <div className='flex items-start gap-2'>
+                            <a href={row.documentUrl} target='_blank' rel='noreferrer' className='block w-fit overflow-hidden rounded-2xl border border-slate-200 bg-slate-50'>
+                              <img src={row.documentUrl} alt={`${row.type} document`} className='h-24 w-24 object-cover' />
+                            </a>
+                            <button
+                              type='button'
+                              onClick={() => handleShareDocument(row.documentUrl, row.isPdf, row.type)}
+                              className='inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-900 transition hover:bg-slate-100'
+                              title={`Share ${row.type}`}
+                              aria-label={`Share ${row.type}`}
+                            >
+                              <Share className='h-4 w-4' />
+                            </button>
+                          </div>
                         )}
                       </td>
                     </tr>

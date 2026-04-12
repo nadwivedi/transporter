@@ -1,13 +1,22 @@
 import { useEffect, useRef, useState } from 'react'
 import axios from 'axios'
 import { toast } from 'react-toastify'
-import { getTodayDate as utilGetTodayDate, handleSmartDateInput } from '../../../utils/dateFormatter'
+import { getTodayDate as utilGetTodayDate, handleSmartDateInput, normalizeAIExtractedDate } from '../../../utils/dateFormatter'
 import { validateVehicleNumberRealtime } from '../../../utils/vehicleNoCheck'
+import DocumentScannerPreview from '../../../components/DocumentScannerPreview'
 
 const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'
 
+const resolveStoredDocumentPreview = (documentPath) => {
+  if (!documentPath) return null
+  if (documentPath.startsWith('data:')) return documentPath
+  if (documentPath.startsWith('http://') || documentPath.startsWith('https://')) return documentPath
+  return `${API_URL}${documentPath}`
+}
+
 const AddInsuranceModal = ({ isOpen, onClose, onSubmit, initialData = null, isEditMode = false, prefilledVehicleNumber = '', prefilledOwnerName = '' }) => {
   const dropdownItemRefs = useRef([])
+  const isOcrUpdate = useRef(false)
   const getTodayDate = () => utilGetTodayDate()
   const [formData, setFormData] = useState({
     vehicleNumber: prefilledVehicleNumber,
@@ -20,12 +29,22 @@ const AddInsuranceModal = ({ isOpen, onClose, onSubmit, initialData = null, isEd
   const [fetchingVehicle, setFetchingVehicle] = useState(false)
   const [vehicleError, setVehicleError] = useState('')
   const [vehicleValidation, setVehicleValidation] = useState({ isValid: false, message: '' })
-  const [insuranceDocPreview, setInsuranceDocPreview] = useState(null)
-  const [uploadingInsuranceDoc, setUploadingInsuranceDoc] = useState(false)
   const [vehicleMatches, setVehicleMatches] = useState([])
   const [showVehicleDropdown, setShowVehicleDropdown] = useState(false)
   const [selectedDropdownIndex, setSelectedDropdownIndex] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [scanningFile, setScanningFile] = useState(null)
+  const [isExtractingInsurance, setIsExtractingInsurance] = useState(false)
+  const [uploadedInsuranceDocument, setUploadedInsuranceDocument] = useState(null)
+  const [uploadedInsuranceFile, setUploadedInsuranceFile] = useState(null)
+
+  useEffect(() => {
+    return () => {
+      if (uploadedInsuranceDocument?.revokeOnCleanup && uploadedInsuranceDocument.previewUrl) {
+        URL.revokeObjectURL(uploadedInsuranceDocument.previewUrl)
+      }
+    }
+  }, [uploadedInsuranceDocument])
 
   useEffect(() => {
     if (initialData && isOpen) {
@@ -38,7 +57,17 @@ const AddInsuranceModal = ({ isOpen, onClose, onSubmit, initialData = null, isEd
         validTo: initialData.validTo || '',
         insuranceDocument: initialData.insuranceDocument || ''
       })
-      setInsuranceDocPreview(initialData.insuranceDocument ? `${API_URL}${initialData.insuranceDocument}` : null)
+      setUploadedInsuranceDocument(
+        initialData.insuranceDocument
+          ? {
+              name: 'insurance-document',
+              type: initialData.insuranceDocument.startsWith('data:application/pdf') || initialData.insuranceDocument.toLowerCase().includes('.pdf') ? 'pdf' : 'image',
+              previewUrl: resolveStoredDocumentPreview(initialData.insuranceDocument),
+              revokeOnCleanup: false
+            }
+          : null
+      )
+      setUploadedInsuranceFile(null)
       if (vehicleNum) setVehicleValidation(validateVehicleNumberRealtime(vehicleNum))
     } else if (!isOpen) {
       setFormData({
@@ -51,10 +80,17 @@ const AddInsuranceModal = ({ isOpen, onClose, onSubmit, initialData = null, isEd
       })
       setFetchingVehicle(false)
       setVehicleValidation({ isValid: false, message: '' })
-      setInsuranceDocPreview(null)
+      setVehicleError('')
       setVehicleMatches([])
       setShowVehicleDropdown(false)
       setSelectedDropdownIndex(0)
+      setScanningFile(null)
+      setIsExtractingInsurance(false)
+      setUploadedInsuranceDocument(prev => {
+        if (prev?.revokeOnCleanup && prev.previewUrl) URL.revokeObjectURL(prev.previewUrl)
+        return null
+      })
+      setUploadedInsuranceFile(null)
     }
   }, [initialData, isOpen, prefilledVehicleNumber, prefilledOwnerName])
 
@@ -72,6 +108,7 @@ const AddInsuranceModal = ({ isOpen, onClose, onSubmit, initialData = null, isEd
         setVehicleError('')
         setVehicleMatches([])
         setShowVehicleDropdown(false)
+        setSelectedDropdownIndex(0)
         return
       }
       setFetchingVehicle(true)
@@ -95,6 +132,7 @@ const AddInsuranceModal = ({ isOpen, onClose, onSubmit, initialData = null, isEd
         setVehicleError(error.response?.status === 404 ? 'No vehicles found matching the search' : 'Error fetching vehicle details')
         setVehicleMatches([])
         setShowVehicleDropdown(false)
+        setSelectedDropdownIndex(0)
       } finally {
         setFetchingVehicle(false)
       }
@@ -107,8 +145,8 @@ const AddInsuranceModal = ({ isOpen, onClose, onSubmit, initialData = null, isEd
   }, [formData.vehicleNumber])
 
   useEffect(() => {
-    if (!formData.validFrom) return
-    const parts = formData.validFrom.trim().split('-')
+    if (isOcrUpdate.current || !formData.validFrom) return
+    const parts = formData.validFrom.trim().split(/[/-]/)
     if (parts.length !== 3) return
     const day = parseInt(parts[0], 10)
     const month = parseInt(parts[1], 10) - 1
@@ -197,67 +235,111 @@ const AddInsuranceModal = ({ isOpen, onClose, onSubmit, initialData = null, isEd
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
-  const handleInsuranceDocUpload = async (e) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    if (!formData.vehicleNumber) {
-      toast.error('Please enter vehicle number first', { position: 'top-right', autoClose: 3000 })
-      return
-    }
-    const isImage = file.type.startsWith('image/')
-    const isPDF = file.type === 'application/pdf'
-    if (!isImage && !isPDF) {
-      toast.error('Please select a valid image or PDF file', { position: 'top-right', autoClose: 3000 })
-      return
-    }
-    if (file.size > 12 * 1024 * 1024) {
-      toast.error('File size should be less than 12MB', { position: 'top-right', autoClose: 3000 })
-      return
-    }
+  const processExtraction = async (fileToProcess) => {
+    setIsExtractingInsurance(true)
+    const updateToast = toast.info('Analyzing insurance document, please wait...', { autoClose: false, isLoading: true })
 
-    setUploadingInsuranceDoc(true)
     try {
       const reader = new FileReader()
       reader.onloadend = async () => {
         try {
-          const response = await axios.post(
-            `${API_URL}/api/upload/insurance-document`,
-            {
-              imageData: reader.result,
-              insuranceId: initialData?._id || null,
-              vehicleNumber: formData.vehicleNumber
-            },
-            { withCredentials: true }
-          )
-          if (response.data.success) {
-            setFormData(prev => ({ ...prev, insuranceDocument: response.data.data.path }))
-            setInsuranceDocPreview(isPDF ? reader.result : URL.createObjectURL(file))
-            toast.success('Insurance document uploaded successfully!', { position: 'top-right', autoClose: 2000 })
+          const response = await axios.post(`${API_URL}/api/ocr/insurance`, { imageBase64: reader.result }, { withCredentials: true })
+          if (response.data.success && response.data.data) {
+            const resultData = response.data.data
+            isOcrUpdate.current = true
+
+            setFormData(prev => {
+              const updated = { ...prev }
+              Object.keys(resultData).forEach((key) => {
+                const value = resultData[key]
+                if (!value || !Object.prototype.hasOwnProperty.call(updated, key)) return
+                if (key === 'validFrom' || key === 'validTo') {
+                  const normalizedStr = normalizeAIExtractedDate(value)
+                  const formatted = handleSmartDateInput(normalizedStr, '')
+                  if (formatted) updated[key] = formatted
+                  return
+                }
+                if (key === 'vehicleNumber') {
+                  updated[key] = value.toUpperCase().replace(/\s+/g, '')
+                  return
+                }
+                if (key === 'policyNumber') {
+                  updated[key] = value.toUpperCase()
+                  return
+                }
+                updated[key] = value
+              })
+
+              if (resultData.vehicleNumber) {
+                const normalizedVehicleNumber = resultData.vehicleNumber.toUpperCase().replace(/\s+/g, '')
+                setVehicleValidation(validateVehicleNumberRealtime(normalizedVehicleNumber))
+              }
+
+              return updated
+            })
+
+            setTimeout(() => { isOcrUpdate.current = false }, 200)
+            setUploadedInsuranceDocument(prev => {
+              if (prev?.revokeOnCleanup && prev.previewUrl) URL.revokeObjectURL(prev.previewUrl)
+              return {
+                name: fileToProcess.name || 'insurance-document',
+                type: fileToProcess.type === 'application/pdf' ? 'pdf' : 'image',
+                previewUrl: URL.createObjectURL(fileToProcess),
+                revokeOnCleanup: true
+              }
+            })
+            toast.dismiss(updateToast)
+            toast.success('Insurance details extracted successfully!', { position: 'top-right', autoClose: 3000 })
+          } else {
+            toast.dismiss(updateToast)
+            toast.error('Failed to extract data correctly.', { position: 'top-right', autoClose: 3000 })
           }
-        } catch {
-          toast.error('Failed to upload insurance document', { position: 'top-right', autoClose: 3000 })
+        } catch (error) {
+          console.error(error)
+          toast.dismiss(updateToast)
+          toast.error('Server error during OCR processing.', { position: 'top-right', autoClose: 3000 })
         } finally {
-          setUploadingInsuranceDoc(false)
+          setIsExtractingInsurance(false)
         }
       }
-      reader.readAsDataURL(file)
-    } catch {
-      setUploadingInsuranceDoc(false)
-      toast.error('Error uploading insurance document', { position: 'top-right', autoClose: 3000 })
+      reader.readAsDataURL(fileToProcess)
+    } catch (error) {
+      console.error(error)
+      toast.dismiss(updateToast)
+      toast.error('Error reading the file.', { position: 'top-right', autoClose: 3000 })
+      setIsExtractingInsurance(false)
     }
   }
 
-  const handleRemoveInsuranceDoc = () => {
-    setInsuranceDocPreview(null)
-    setFormData(prev => ({ ...prev, insuranceDocument: '' }))
-    toast.info('Insurance document removed', { position: 'top-right', autoClose: 2000 })
+  const handleInsuranceExtractionUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.type === 'application/pdf') {
+      setUploadedInsuranceFile(file)
+      e.target.value = ''
+      await processExtraction(file)
+      return
+    }
+    if (file.type.startsWith('image/')) {
+      setUploadedInsuranceFile(file)
+      setScanningFile(file)
+      e.target.value = ''
+      return
+    }
+    toast.error('Please upload an image or PDF file for extraction.', { position: 'top-right', autoClose: 3000 })
+  }
+
+  const handleScannerConfirm = async (processedImageFile) => {
+    setScanningFile(null)
+    setUploadedInsuranceFile(processedImageFile)
+    await processExtraction(processedImageFile)
   }
 
   const handleInputKeyDown = (e) => {
     if (e.key !== 'Enter') return
     e.preventDefault()
     const currentTabIndex = parseInt(e.target.getAttribute('tabIndex'), 10)
-    if (currentTabIndex === 6) {
+    if (currentTabIndex === 5) {
       document.querySelector('form')?.requestSubmit()
       return
     }
@@ -278,7 +360,16 @@ const AddInsuranceModal = ({ isOpen, onClose, onSubmit, initialData = null, isEd
       validFrom: formData.validFrom,
       validTo: formData.validTo,
       issueDate: formData.validFrom,
-      insuranceDocument: formData.insuranceDocument
+      insuranceDocument: uploadedInsuranceFile ? '' : formData.insuranceDocument
+    }
+
+    if (uploadedInsuranceFile) {
+      submitData.insuranceDocumentData = await new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onloadend = () => resolve(reader.result)
+        reader.onerror = reject
+        reader.readAsDataURL(uploadedInsuranceFile)
+      })
     }
 
     setIsSubmitting(true)
@@ -289,7 +380,7 @@ const AddInsuranceModal = ({ isOpen, onClose, onSubmit, initialData = null, isEd
       const response = await request
       if (response.data.success) {
         toast.success(isEditMode ? 'Insurance updated successfully!' : 'Insurance added successfully!')
-        if (onSubmit) onSubmit()
+        if (onSubmit) await onSubmit()
         onClose()
       }
     } catch (error) {
@@ -320,6 +411,26 @@ const AddInsuranceModal = ({ isOpen, onClose, onSubmit, initialData = null, isEd
 
         <form onSubmit={handleSubmit} className='flex flex-col flex-1 overflow-hidden'>
           <div className='flex-1 overflow-y-auto p-3 md:p-6'>
+            <div className='mb-4 md:mb-6 p-4 bg-gradient-to-r from-cyan-50 to-blue-50 rounded-xl border-2 border-dashed border-cyan-200'>
+              <div className='flex flex-col sm:flex-row items-center justify-between gap-4'>
+                <div>
+                  <h3 className='text-sm md:text-base font-bold text-cyan-800 flex items-center gap-2'>
+                    <svg className='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                      <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M13 10V3L4 14h7v7l9-11h-7z' />
+                    </svg>
+                    AI Fast Extraction
+                  </h3>
+                  <p className='text-xs text-cyan-700 mt-1'>Upload an insurance document in image or PDF format to auto-fill policy and validity details.</p>
+                </div>
+                <div className='relative overflow-hidden'>
+                  <button type='button' disabled={isExtractingInsurance} className='relative px-4 py-2 bg-cyan-600 text-white font-semibold rounded-lg shadow-md hover:bg-cyan-700 transition disabled:opacity-50 flex items-center gap-2 text-sm max-w-full'>
+                    {isExtractingInsurance ? 'Extracting...' : 'Upload Insurance Document'}
+                  </button>
+                  <input type='file' accept='image/*, application/pdf' disabled={isExtractingInsurance} onChange={handleInsuranceExtractionUpload} className='absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed' />
+                </div>
+              </div>
+            </div>
+
             <div className='bg-gradient-to-r from-indigo-50 to-blue-50 border-2 border-indigo-200 rounded-xl p-3 md:p-6 mb-4 md:mb-6'>
               <h3 className='text-base md:text-lg font-bold text-gray-800 mb-3 md:mb-4 flex items-center gap-2'>
                 <span className='bg-indigo-600 text-white w-6 h-6 md:w-8 md:h-8 rounded-full flex items-center justify-center text-xs md:text-sm'>1</span>
@@ -375,46 +486,27 @@ const AddInsuranceModal = ({ isOpen, onClose, onSubmit, initialData = null, isEd
               </div>
             </div>
 
-            <div className='bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-200 rounded-xl p-3 md:p-6 mb-4 md:mb-6'>
-              <h3 className='text-base md:text-lg font-bold text-gray-800 mb-3 md:mb-4 flex items-center gap-2'>
-                <span className='bg-purple-600 text-white w-6 h-6 md:w-8 md:h-8 rounded-full flex items-center justify-center text-xs md:text-sm'>3</span>
-                Insurance Document
-              </h3>
-              {!insuranceDocPreview ? (
-                <>
-                  <input type='file' accept='image/*,application/pdf' onChange={handleInsuranceDocUpload} disabled={uploadingInsuranceDoc || !formData.vehicleNumber} className='hidden' id='insuranceDocInput' />
-                  <label htmlFor='insuranceDocInput' className={`flex flex-col items-center justify-center w-full h-32 md:h-40 border-2 border-dashed rounded-lg cursor-pointer transition-all duration-200 ${uploadingInsuranceDoc || !formData.vehicleNumber ? 'border-gray-300 bg-gray-50 cursor-not-allowed' : 'border-purple-300 bg-white hover:bg-purple-50 hover:border-purple-400'}`}>
-                    {uploadingInsuranceDoc ? (
-                      <div className='flex flex-col items-center'>
-                        <p className='text-sm text-gray-600 font-semibold'>Uploading...</p>
-                      </div>
-                    ) : !formData.vehicleNumber ? (
-                      <div className='flex flex-col items-center'>
-                        <p className='text-xs md:text-sm text-gray-500 font-semibold mb-1'>Enter vehicle number first</p>
-                      </div>
-                    ) : (
-                      <>
-                        <p className='text-xs md:text-sm text-gray-600 font-semibold mb-1'>Upload Insurance Document</p>
-                        <p className='text-[10px] md:text-xs text-gray-500'>Image or PDF (Optional)</p>
-                        <p className='text-[10px] text-purple-600 font-semibold mt-1'>Max 12MB</p>
-                      </>
-                    )}
-                  </label>
-                </>
-              ) : (
-                <div className='relative'>
-                  {insuranceDocPreview.startsWith('data:application/pdf') || insuranceDocPreview.includes('.pdf') ? (
-                    <div className='w-full h-32 md:h-40 flex flex-col items-center justify-center bg-white rounded-lg border-2 border-purple-300'>
-                      <p className='text-xs md:text-sm font-semibold text-gray-600'>Insurance PDF</p>
-                      <a href={insuranceDocPreview} target='_blank' rel='noopener noreferrer' className='text-xs text-blue-600 hover:underline mt-1'>View PDF</a>
-                    </div>
-                  ) : (
-                    <img src={insuranceDocPreview} alt='Insurance Document Preview' className='w-full h-32 md:h-40 object-contain bg-white rounded-lg border-2 border-purple-300' />
-                  )}
-                  <button type='button' onClick={handleRemoveInsuranceDoc} className='absolute -top-2 -right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-all shadow-lg' title='Delete insurance document'>X</button>
+            {uploadedInsuranceDocument && (
+              <div className='bg-gradient-to-r from-slate-50 to-violet-50 border-2 border-slate-200 rounded-xl p-3 md:p-6 mb-4 md:mb-6'>
+                <h3 className='text-base md:text-lg font-bold text-gray-800 mb-3 md:mb-4 flex items-center gap-2'>
+                  <span className='bg-slate-700 text-white w-6 h-6 md:w-8 md:h-8 rounded-full flex items-center justify-center text-xs md:text-sm'>3</span>
+                  Uploaded Insurance Document
+                </h3>
+                <div className='mb-3 flex items-center justify-between gap-3 rounded-lg bg-white/80 px-3 py-2 border border-slate-200'>
+                  <div className='min-w-0'>
+                    <p className='text-sm font-semibold text-slate-800 truncate'>{uploadedInsuranceDocument.name}</p>
+                    <p className='text-xs text-slate-500'>{uploadedInsuranceDocument.type === 'pdf' ? 'PDF preview' : 'Image preview'}</p>
+                  </div>
                 </div>
-              )}
-            </div>
+                {uploadedInsuranceDocument.type === 'pdf' ? (
+                  <iframe src={uploadedInsuranceDocument.previewUrl} title='Uploaded Insurance PDF' className='w-full h-80 rounded-xl border border-slate-200 bg-white' />
+                ) : (
+                  <div className='rounded-xl border border-slate-200 bg-white p-2'>
+                    <img src={uploadedInsuranceDocument.previewUrl} alt='Uploaded Insurance document' className='w-full max-h-80 object-contain rounded-lg' />
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className='border-t border-gray-200 p-3 md:p-4 bg-gray-50 flex flex-col md:flex-row justify-between items-center gap-3 flex-shrink-0'>
@@ -426,6 +518,13 @@ const AddInsuranceModal = ({ isOpen, onClose, onSubmit, initialData = null, isEd
           </div>
         </form>
       </div>
+      {scanningFile && (
+        <DocumentScannerPreview
+          file={scanningFile}
+          onCancel={() => setScanningFile(null)}
+          onConfirm={handleScannerConfirm}
+        />
+      )}
     </div>
   )
 }

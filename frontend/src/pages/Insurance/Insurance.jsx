@@ -55,14 +55,19 @@ const Insurance = () => {
     try {
       const response = await axios.get(`${API_URL}/api/insurance/statistics`, { withCredentials: true });
       if (response.data.success) {
-        const { insurance, pendingPayments } = response.data.data;
+        const statsData = response.data.data || {};
+        const insurance = statsData.insurance || statsData;
+        const pendingPayments = statsData.pendingPayments || {
+          count: statsData.pendingPaymentCount || 0,
+          amount: statsData.pendingPaymentAmount || 0,
+        };
         setStats({
-          total: insurance.total,
-          active: insurance.active,
-          expiringSoon: insurance.expiringSoon,
-          expired: insurance.expired,
-          pendingPaymentCount: pendingPayments.count,
-          pendingPaymentAmount: pendingPayments.amount,
+          total: insurance.total || 0,
+          active: insurance.active || 0,
+          expiringSoon: insurance.expiringSoon || 0,
+          expired: insurance.expired || 0,
+          pendingPaymentCount: pendingPayments.count || 0,
+          pendingPaymentAmount: pendingPayments.amount || 0,
         });
       }
     } catch (error) {
@@ -358,7 +363,9 @@ const Insurance = () => {
     }
 
     // Create WhatsApp message with document link
-    const documentURL = `${API_URL}${insurance.insuranceDocument}`;
+    const documentURL = insurance.insuranceDocument?.startsWith('data:')
+      ? insurance.insuranceDocument
+      : `${API_URL}${insurance.insuranceDocument}`;
 
     let message = `Hello,\n\n`;
     message += `Here is your Insurance Document for vehicle *${insurance.vehicleNumber}*\n\n`;

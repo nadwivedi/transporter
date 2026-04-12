@@ -281,6 +281,14 @@ const AddPucModal = ({ isOpen, onClose, onSubmit, prefilledVehicleNumber = '', p
               return updated
             })
             setTimeout(() => { isOcrUpdate.current = false }, 200)
+            setUploadedPucDocument(prev => {
+              if (prev?.previewUrl) URL.revokeObjectURL(prev.previewUrl)
+              return {
+                name: fileToProcess.name || 'puc-document',
+                type: fileToProcess.type === 'application/pdf' ? 'pdf' : 'image',
+                previewUrl: URL.createObjectURL(fileToProcess)
+              }
+            })
             toast.dismiss(updateToast)
             toast.success('PUC details extracted successfully!', { position: 'top-right', autoClose: 3000 })
           } else {
@@ -307,10 +315,6 @@ const AddPucModal = ({ isOpen, onClose, onSubmit, prefilledVehicleNumber = '', p
     if (!file) return
     if (file.type === 'application/pdf') {
       setUploadedPucFile(file)
-      setUploadedPucDocument(prev => {
-        if (prev?.previewUrl) URL.revokeObjectURL(prev.previewUrl)
-        return { name: file.name, type: 'pdf', previewUrl: URL.createObjectURL(file) }
-      })
       e.target.value = ''
       await processExtraction(file)
       return
@@ -326,10 +330,6 @@ const AddPucModal = ({ isOpen, onClose, onSubmit, prefilledVehicleNumber = '', p
   const handleScannerConfirm = async (processedImageFile) => {
     setScanningFile(null)
     setUploadedPucFile(processedImageFile)
-    setUploadedPucDocument(prev => {
-      if (prev?.previewUrl) URL.revokeObjectURL(prev.previewUrl)
-      return { name: processedImageFile.name || 'puc-document.jpg', type: 'image', previewUrl: URL.createObjectURL(processedImageFile) }
-    })
     await processExtraction(processedImageFile)
   }
 
