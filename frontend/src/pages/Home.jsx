@@ -103,31 +103,27 @@ const Home = () => {
                         tabIndex={0}
                         className='group cursor-pointer overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_18px_45px_-30px_rgba(15,23,42,0.6)] transition-transform duration-200 hover:-translate-y-1'
                       >
-                        <div className='bg-gradient-to-r from-slate-900 via-indigo-900 to-slate-900 px-5 py-4 text-white'>
-                          <p className='text-[11px] font-bold uppercase tracking-[0.24em] text-slate-300'>Vehicle Card</p>
-                        </div>
-
                         <div className='p-5'>
-                          <div className='rounded-[24px] border-4 border-slate-900 bg-gradient-to-b from-amber-200 to-yellow-300 px-4 py-6 shadow-inner'>
+                          <div className='mx-auto max-w-[250px] rounded-[20px] border-[3px] border-slate-900 bg-gradient-to-b from-amber-200 to-yellow-300 px-3 py-4 shadow-inner'>
                             <p className='text-center text-[11px] font-extrabold uppercase tracking-[0.35em] text-slate-700'>
                               Vehicle No
                             </p>
-                            <div className='mt-3 text-center text-2xl font-black tracking-[0.18em] text-slate-950 md:text-3xl'>
+                            <div className='mt-2 text-center text-xl font-black tracking-[0.14em] text-slate-950 md:text-2xl'>
                               {vehicleNumber}
                             </div>
                           </div>
 
-                          <div className='mt-5 grid grid-cols-1 gap-3'>
+                          <div className='mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2'>
                             <div className='rounded-2xl bg-slate-50 px-4 py-3'>
                               <p className='text-[11px] font-bold uppercase tracking-[0.22em] text-slate-500'>Chassis No</p>
-                              <p className='mt-1 break-all font-mono text-sm font-semibold text-slate-900'>
+                              <p className='mt-1 truncate font-mono text-xs font-semibold text-slate-900 sm:text-[13px]' title={vehicle.chassisNumber || 'N/A'}>
                                 {vehicle.chassisNumber || 'N/A'}
                               </p>
                             </div>
 
                             <div className='rounded-2xl bg-slate-50 px-4 py-3'>
                               <p className='text-[11px] font-bold uppercase tracking-[0.22em] text-slate-500'>Engine No</p>
-                              <p className='mt-1 break-all font-mono text-sm font-semibold text-slate-900'>
+                              <p className='mt-1 truncate font-mono text-xs font-semibold text-slate-900 sm:text-[13px]' title={vehicle.engineNumber || 'N/A'}>
                                 {vehicle.engineNumber || 'N/A'}
                               </p>
                             </div>
