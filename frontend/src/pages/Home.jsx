@@ -67,16 +67,18 @@ const Home = () => {
       <main className='pl-2 pr-4 pt-6 pb-10 lg:pl-3 lg:pr-8 lg:pt-8'>
         <section className='w-full'>
           <div className='grid grid-cols-1 gap-6 lg:grid-cols-[300px_minmax(0,1fr)]'>
-            <Sidebar
-              onAddVehicle={() => setShowAddVehicleModal(true)}
-              onAddFitness={() => setShowAddFitnessModal(true)}
-              onAddTax={() => setShowAddTaxModal(true)}
-              onAddPuc={() => setShowAddPucModal(true)}
-              onAddGps={() => setShowAddGpsModal(true)}
-              onAddInsurance={() => setShowAddInsuranceModal(true)}
-            />
+            <div className='rounded-[28px] border border-slate-200 bg-white shadow-[0_22px_50px_-32px_rgba(15,23,42,0.35)]'>
+              <Sidebar
+                onAddVehicle={() => setShowAddVehicleModal(true)}
+                onAddFitness={() => setShowAddFitnessModal(true)}
+                onAddTax={() => setShowAddTaxModal(true)}
+                onAddPuc={() => setShowAddPucModal(true)}
+                onAddGps={() => setShowAddGpsModal(true)}
+                onAddInsurance={() => setShowAddInsuranceModal(true)}
+              />
+            </div>
 
-            <div>
+            <div className='rounded-[32px] border border-indigo-100 bg-gradient-to-br from-white via-indigo-50/40 to-sky-50/70 p-4 shadow-[0_28px_60px_-34px_rgba(79,70,229,0.28)] md:p-5 lg:p-6'>
               <div className='mb-4 flex justify-start'>
                 <SearchBar
                   value={searchQuery}
