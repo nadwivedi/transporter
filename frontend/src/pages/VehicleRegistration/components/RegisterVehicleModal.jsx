@@ -2010,7 +2010,8 @@ const RegisterVehicleModal = ({ isOpen, onClose, onSuccess, editData }) => {
               </div>
             </div>
 
-            {/* Document Upload Section */}
+            {/* Uploaded RC Section */}
+            {rcImagePreview && (
             <div className='mb-4 md:mb-8'>
               <div className='flex items-center gap-2 md:gap-3 mb-3 md:mb-6'>
                 <div className='bg-gradient-to-br from-green-500 to-emerald-600 p-1.5 md:p-2.5 rounded-lg md:rounded-xl shadow-lg'>
@@ -2019,346 +2020,59 @@ const RegisterVehicleModal = ({ isOpen, onClose, onSuccess, editData }) => {
                   </svg>
                 </div>
                 <div>
-                  <h3 className='text-sm md:text-xl font-bold text-gray-800'>Document Upload</h3>
-                  <p className='text-[10px] md:text-sm text-gray-500 hidden md:block'>Upload RC, Aadhar, and PAN documents (Optional - Images auto-convert to WebP, PDFs supported)</p>
+                  <h3 className='text-sm md:text-xl font-bold text-gray-800'>Uploaded RC</h3>
+                  <p className='text-[10px] md:text-sm text-gray-500 hidden md:block'>Preview of the uploaded RC document</p>
                 </div>
               </div>
               <div className='bg-gradient-to-br from-green-50 to-emerald-50 p-3 md:p-6 rounded-xl md:rounded-2xl border border-green-100'>
-                <div className='grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-6'>
-                  {/* RC Document Upload */}
+                <div className='grid grid-cols-1 gap-4 md:gap-6'>
+                  {/* RC Document Preview */}
                   <div className='flex flex-col'>
                     <label className='block text-xs md:text-sm font-semibold text-gray-700 mb-2'>
-                      RC Document {rcImagePreview && <span className='text-green-600'>(Uploaded)</span>}
+                      RC Document <span className='text-green-600'>(Uploaded)</span>
                     </label>
                     <div className='relative flex-1'>
-                      {!rcImagePreview ? (
-                        <>
-                          <input
-                            type='file'
-                            accept='image/*,application/pdf'
-                            onChange={handleImageUpload}
-                            disabled={uploadingImage}
-                            className='hidden'
-                            id='rcImageInput'
-                          />
-                          <label
-                            htmlFor='rcImageInput'
-                            className={`flex flex-col items-center justify-center w-full h-32 md:h-40 border-2 border-dashed rounded-lg cursor-pointer transition-all duration-200 ${
-                              uploadingImage
-                                ? 'border-gray-300 bg-gray-50 cursor-not-allowed'
-                                : 'border-green-300 bg-white hover:bg-green-50 hover:border-green-400'
-                            }`}
-                          >
-                            {uploadingImage ? (
-                              <div className='flex flex-col items-center'>
-                                <svg className='animate-spin h-8 w-8 text-green-600 mb-2' fill='none' viewBox='0 0 24 24'>
-                                  <circle className='opacity-25' cx='12' cy='12' r='10' stroke='currentColor' strokeWidth='4' />
-                                  <path className='opacity-75' fill='currentColor' d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z' />
-                                </svg>
-                                <p className='text-sm text-gray-600 font-semibold'>Uploading...</p>
-                              </div>
-                            ) : (
-                              <>
-                                <svg className='w-10 h-10 md:w-12 md:h-12 text-green-400 mb-2' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                                  <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12' />
-                                </svg>
-                                <p className='text-xs md:text-sm text-gray-600 font-semibold mb-1'>Upload RC</p>
-                                <p className='text-[10px] md:text-xs text-gray-500'>Image or PDF</p>
-                                <p className='text-[10px] text-green-600 font-semibold mt-1'>Max 12MB</p>
-                              </>
-                            )}
-                          </label>
-                        </>
-                      ) : (
-                        <div className='relative'>
-                          {rcImagePreview.startsWith('data:application/pdf') || rcImagePreview.includes('.pdf') ? (
-                            <div className='w-full h-32 md:h-40 flex flex-col items-center justify-center bg-white rounded-lg border-2 border-green-300'>
-                              <svg className='w-12 h-12 md:w-16 md:h-16 text-red-500 mb-2' fill='currentColor' viewBox='0 0 20 20'>
-                                <path fillRule='evenodd' d='M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z' clipRule='evenodd' />
-                              </svg>
-                              <p className='text-xs md:text-sm font-semibold text-gray-600'>RC PDF</p>
-                              <a
-                                href={rcImagePreview}
-                                target='_blank'
-                                rel='noopener noreferrer'
-                                className='text-xs text-blue-600 hover:underline mt-1'
-                              >
-                                View PDF
-                              </a>
-                            </div>
-                          ) : (
-                            <img
-                              src={rcImagePreview}
-                              alt='RC Preview'
-                              onClick={() => setShowImageViewer(true)}
-                              className='w-full h-32 md:h-40 object-contain bg-white rounded-lg border-2 border-green-300 cursor-pointer hover:border-green-500 transition-all'
-                            />
-                          )}
-                          <button
-                            type='button'
-                            onClick={handleRemoveImage}
-                            className='absolute -top-2 -right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-all shadow-lg'
-                            title='Delete RC document'
-                          >
-                            <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                              <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16' />
+                      <div className='relative'>
+                        {rcImagePreview.startsWith('data:application/pdf') || rcImagePreview.includes('.pdf') ? (
+                          <div className='w-full h-32 md:h-40 flex flex-col items-center justify-center bg-white rounded-lg border-2 border-green-300'>
+                            <svg className='w-12 h-12 md:w-16 md:h-16 text-red-500 mb-2' fill='currentColor' viewBox='0 0 20 20'>
+                              <path fillRule='evenodd' d='M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z' clipRule='evenodd' />
                             </svg>
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Aadhar Document Upload */}
-                  <div className='flex flex-col'>
-                    <label className='block text-xs md:text-sm font-semibold text-gray-700 mb-2'>
-                      Aadhar Document {aadharImagePreview && <span className='text-green-600'>(Uploaded)</span>}
-                    </label>
-                    <div className='relative flex-1'>
-                      {!aadharImagePreview ? (
-                        <>
-                          <input
-                            type='file'
-                            accept='image/*,application/pdf'
-                            onChange={handleAadharUpload}
-                            disabled={uploadingAadhar}
-                            className='hidden'
-                            id='aadharImageInput'
+                            <p className='text-xs md:text-sm font-semibold text-gray-600'>RC PDF</p>
+                            <a
+                              href={rcImagePreview}
+                              target='_blank'
+                              rel='noopener noreferrer'
+                              className='text-xs text-blue-600 hover:underline mt-1'
+                            >
+                              View PDF
+                            </a>
+                          </div>
+                        ) : (
+                          <img
+                            src={rcImagePreview}
+                            alt='RC Preview'
+                            onClick={() => setShowImageViewer(true)}
+                            className='w-full h-32 md:h-40 object-contain bg-white rounded-lg border-2 border-green-300 cursor-pointer hover:border-green-500 transition-all'
                           />
-                          <label
-                            htmlFor='aadharImageInput'
-                            className={`flex flex-col items-center justify-center w-full h-32 md:h-40 border-2 border-dashed rounded-lg cursor-pointer transition-all duration-200 ${
-                              uploadingAadhar
-                                ? 'border-gray-300 bg-gray-50 cursor-not-allowed'
-                                : 'border-blue-300 bg-white hover:bg-blue-50 hover:border-blue-400'
-                            }`}
-                          >
-                            {uploadingAadhar ? (
-                              <div className='flex flex-col items-center'>
-                                <svg className='animate-spin h-8 w-8 text-blue-600 mb-2' fill='none' viewBox='0 0 24 24'>
-                                  <circle className='opacity-25' cx='12' cy='12' r='10' stroke='currentColor' strokeWidth='4' />
-                                  <path className='opacity-75' fill='currentColor' d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z' />
-                                </svg>
-                                <p className='text-sm text-gray-600 font-semibold'>Uploading...</p>
-                              </div>
-                            ) : (
-                              <>
-                                <svg className='w-10 h-10 md:w-12 md:h-12 text-blue-400 mb-2' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                                  <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12' />
-                                </svg>
-                                <p className='text-xs md:text-sm text-gray-600 font-semibold mb-1'>Upload Aadhar</p>
-                                <p className='text-[10px] md:text-xs text-gray-500'>Image or PDF</p>
-                                <p className='text-[10px] text-blue-600 font-semibold mt-1'>Max 12MB</p>
-                              </>
-                            )}
-                          </label>
-                        </>
-                      ) : (
-                        <div className='relative'>
-                          {aadharImagePreview.startsWith('data:application/pdf') || aadharImagePreview.includes('.pdf') ? (
-                            <div className='w-full h-32 md:h-40 flex flex-col items-center justify-center bg-white rounded-lg border-2 border-blue-300'>
-                              <svg className='w-12 h-12 md:w-16 md:h-16 text-red-500 mb-2' fill='currentColor' viewBox='0 0 20 20'>
-                                <path fillRule='evenodd' d='M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z' clipRule='evenodd' />
-                              </svg>
-                              <p className='text-xs md:text-sm font-semibold text-gray-600'>Aadhar PDF</p>
-                              <a
-                                href={aadharImagePreview}
-                                target='_blank'
-                                rel='noopener noreferrer'
-                                className='text-xs text-blue-600 hover:underline mt-1'
-                              >
-                                View PDF
-                              </a>
-                            </div>
-                          ) : (
-                            <img
-                              src={aadharImagePreview}
-                              alt='Aadhar Preview'
-                              className='w-full h-32 md:h-40 object-contain bg-white rounded-lg border-2 border-blue-300 cursor-pointer hover:border-blue-500 transition-all'
-                            />
-                          )}
-                          <button
-                            type='button'
-                            onClick={handleRemoveAadhar}
-                            className='absolute -top-2 -right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-all shadow-lg'
-                            title='Delete Aadhar document'
-                          >
-                            <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                              <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16' />
-                            </svg>
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* PAN Document Upload */}
-                  <div className='flex flex-col'>
-                    <label className='block text-xs md:text-sm font-semibold text-gray-700 mb-2'>
-                      PAN Document {panImagePreview && <span className='text-green-600'>(Uploaded)</span>}
-                    </label>
-                    <div className='relative flex-1'>
-                      {!panImagePreview ? (
-                        <>
-                          <input
-                            type='file'
-                            accept='image/*,application/pdf'
-                            onChange={handlePanUpload}
-                            disabled={uploadingPan}
-                            className='hidden'
-                            id='panImageInput'
-                          />
-                          <label
-                            htmlFor='panImageInput'
-                            className={`flex flex-col items-center justify-center w-full h-32 md:h-40 border-2 border-dashed rounded-lg cursor-pointer transition-all duration-200 ${
-                              uploadingPan
-                                ? 'border-gray-300 bg-gray-50 cursor-not-allowed'
-                                : 'border-purple-300 bg-white hover:bg-purple-50 hover:border-purple-400'
-                            }`}
-                          >
-                            {uploadingPan ? (
-                              <div className='flex flex-col items-center'>
-                                <svg className='animate-spin h-8 w-8 text-purple-600 mb-2' fill='none' viewBox='0 0 24 24'>
-                                  <circle className='opacity-25' cx='12' cy='12' r='10' stroke='currentColor' strokeWidth='4' />
-                                  <path className='opacity-75' fill='currentColor' d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z' />
-                                </svg>
-                                <p className='text-sm text-gray-600 font-semibold'>Uploading...</p>
-                              </div>
-                            ) : (
-                              <>
-                                <svg className='w-10 h-10 md:w-12 md:h-12 text-purple-400 mb-2' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                                  <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12' />
-                                </svg>
-                                <p className='text-xs md:text-sm text-gray-600 font-semibold mb-1'>Upload PAN</p>
-                                <p className='text-[10px] md:text-xs text-gray-500'>Image or PDF</p>
-                                <p className='text-[10px] text-purple-600 font-semibold mt-1'>Max 12MB</p>
-                              </>
-                            )}
-                          </label>
-                        </>
-                      ) : (
-                        <div className='relative'>
-                          {panImagePreview.startsWith('data:application/pdf') || panImagePreview.includes('.pdf') ? (
-                            <div className='w-full h-32 md:h-40 flex flex-col items-center justify-center bg-white rounded-lg border-2 border-purple-300'>
-                              <svg className='w-12 h-12 md:w-16 md:h-16 text-red-500 mb-2' fill='currentColor' viewBox='0 0 20 20'>
-                                <path fillRule='evenodd' d='M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z' clipRule='evenodd' />
-                              </svg>
-                              <p className='text-xs md:text-sm font-semibold text-gray-600'>PAN PDF</p>
-                              <a
-                                href={panImagePreview}
-                                target='_blank'
-                                rel='noopener noreferrer'
-                                className='text-xs text-blue-600 hover:underline mt-1'
-                              >
-                                View PDF
-                              </a>
-                            </div>
-                          ) : (
-                            <img
-                              src={panImagePreview}
-                              alt='PAN Preview'
-                              className='w-full h-32 md:h-40 object-contain bg-white rounded-lg border-2 border-purple-300 cursor-pointer hover:border-purple-500 transition-all'
-                            />
-                          )}
-                          <button
-                            type='button'
-                            onClick={handleRemovePan}
-                            className='absolute -top-2 -right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-all shadow-lg'
-                            title='Delete PAN document'
-                          >
-                            <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                              <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16' />
-                            </svg>
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  {/* Speed Governor Document Upload */}
-                  <div className='flex flex-col'>
-                    <label className='block text-xs md:text-sm font-semibold text-gray-700 mb-2'>
-                      Speed Governor {speedGovernorImagePreview && <span className='text-green-600'>(Uploaded)</span>}
-                    </label>
-                    <div className='relative flex-1'>
-                      {!speedGovernorImagePreview ? (
-                        <>
-                          <input
-                            type='file'
-                            accept='image/*,application/pdf'
-                            onChange={handleSpeedGovernorUpload}
-                            disabled={uploadingSpeedGovernor}
-                            className='hidden'
-                            id='speedGovernorImageInput'
-                          />
-                          <label
-                            htmlFor='speedGovernorImageInput'
-                            className={`flex flex-col items-center justify-center w-full h-32 md:h-40 border-2 border-dashed rounded-lg cursor-pointer transition-all duration-200 ${
-                              uploadingSpeedGovernor
-                                ? 'border-gray-300 bg-gray-50 cursor-not-allowed'
-                                : 'border-yellow-300 bg-white hover:bg-yellow-50 hover:border-yellow-400'
-                            }`}
-                          >
-                            {uploadingSpeedGovernor ? (
-                              <div className='flex flex-col items-center'>
-                                <svg className='animate-spin h-8 w-8 text-yellow-600 mb-2' fill='none' viewBox='0 0 24 24'>
-                                  <circle className='opacity-25' cx='12' cy='12' r='10' stroke='currentColor' strokeWidth='4' />
-                                  <path className='opacity-75' fill='currentColor' d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z' />
-                                </svg>
-                                <p className='text-sm text-gray-600 font-semibold'>Uploading...</p>
-                              </div>
-                            ) : (
-                              <>
-                                <svg className='w-10 h-10 md:w-12 md:h-12 text-yellow-400 mb-2' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                                  <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12' />
-                                </svg>
-                                <p className='text-xs md:text-sm text-gray-600 font-semibold mb-1'>Upload Speed Governor</p>
-                                <p className='text-[10px] md:text-xs text-gray-500'>Image or PDF</p>
-                                <p className='text-[10px] text-yellow-600 font-semibold mt-1'>Max 12MB</p>
-                              </>
-                            )}
-                          </label>
-                        </>
-                      ) : (
-                        <div className='relative'>
-                          {speedGovernorImagePreview.startsWith('data:application/pdf') || speedGovernorImagePreview.includes('.pdf') ? (
-                            <div className='w-full h-32 md:h-40 flex flex-col items-center justify-center bg-white rounded-lg border-2 border-yellow-300'>
-                              <svg className='w-12 h-12 md:w-16 md:h-16 text-red-500 mb-2' fill='currentColor' viewBox='0 0 20 20'>
-                                <path fillRule='evenodd' d='M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z' clipRule='evenodd' />
-                              </svg>
-                              <p className='text-xs md:text-sm font-semibold text-gray-600'>Speed Governor PDF</p>
-                              <a
-                                href={speedGovernorImagePreview}
-                                target='_blank'
-                                rel='noopener noreferrer'
-                                className='text-xs text-blue-600 hover:underline mt-1'
-                              >
-                                View PDF
-                              </a>
-                            </div>
-                          ) : (
-                            <img
-                              src={speedGovernorImagePreview}
-                              alt='Speed Governor Preview'
-                              className='w-full h-32 md:h-40 object-contain bg-white rounded-lg border-2 border-yellow-300 cursor-pointer hover:border-yellow-500 transition-all'
-                            />
-                          )}
-                          <button
-                            type='button'
-                            onClick={handleRemoveSpeedGovernor}
-                            className='absolute -top-2 -right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-all shadow-lg'
-                            title='Delete Speed Governor document'
-                          >
-                            <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                              <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16' />
-                            </svg>
-                          </button>
-                        </div>
-                      )}
+                        )}
+                        <button
+                          type='button'
+                          onClick={handleRemoveImage}
+                          className='absolute -top-2 -right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-all shadow-lg'
+                          title='Delete RC document'
+                        >
+                          <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                            <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16' />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
+            )}
 
           </form>
         </div>

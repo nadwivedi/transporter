@@ -160,6 +160,37 @@ const renderVehicleNumber = (vehicleNumber, vehicleDesign) => {
   )
 }
 
+const getDocumentUrl = (value) => {
+  if (!value) return ''
+  if (String(value).startsWith('http') || String(value).startsWith('data:')) return value
+  return `${API_URL}${value}`
+}
+
+const RcPlate = ({ vehicleNumber }) => {
+  const parts = getVehicleNumberParts(vehicleNumber)
+
+  if (!parts) {
+    return (
+      <div className='mx-auto max-w-[320px] rounded-[26px] border-[4px] border-slate-900 bg-gradient-to-b from-amber-200 to-yellow-300 px-4 py-5 shadow-[inset_0_2px_10px_rgba(255,255,255,0.45)]'>
+        <p className='text-center text-[11px] font-extrabold uppercase tracking-[0.34em] text-slate-700'>Registration No</p>
+        <div className='mt-3 text-center text-2xl font-black tracking-[0.18em] text-slate-950 md:text-3xl'>{vehicleNumber || 'N/A'}</div>
+      </div>
+    )
+  }
+
+  return (
+    <div className='mx-auto max-w-[340px] rounded-[26px] border-[4px] border-slate-900 bg-gradient-to-b from-amber-200 to-yellow-300 px-4 py-5 shadow-[inset_0_2px_10px_rgba(255,255,255,0.45)]'>
+      <p className='text-center text-[11px] font-extrabold uppercase tracking-[0.34em] text-slate-700'>Registration No</p>
+      <div className='mt-3 flex items-center justify-center gap-2 text-slate-950'>
+        <span className='rounded-md bg-white/50 px-2 py-1 text-lg font-black tracking-[0.12em] md:text-xl'>{parts.stateCode}</span>
+        <span className='rounded-md bg-white/50 px-2 py-1 text-lg font-black tracking-[0.12em] md:text-xl'>{parts.districtCode}</span>
+        <span className='rounded-md bg-white/50 px-2 py-1 text-lg font-black tracking-[0.12em] md:text-xl'>{parts.series}</span>
+        <span className='rounded-md bg-white/50 px-2 py-1 text-xl font-black tracking-[0.12em] md:text-2xl'>{parts.last4Digits}</span>
+      </div>
+    </div>
+  )
+}
+
 const RecordSection = ({ title, records, dateFromKey, dateToKey, dateFromLabel, dateToLabel, accent, emptyText, extraFields }) => {
   const accentStyle = accentClasses[accent] || accentClasses.slate
 
@@ -287,6 +318,11 @@ const VehicleDetailPage = () => {
     ].filter(([, value]) => value !== null && value !== undefined && value !== '')
   }, [vehicle])
 
+  const rcAdditionalFields = useMemo(
+    () => rcFields.filter(([label]) => !['Registration Date', 'Chassis Number', 'Engine Number', 'RC Image'].includes(label)),
+    [rcFields]
+  )
+
   if (loading) {
     return (
       <div className='min-h-screen bg-[radial-gradient(circle_at_top,_#eff6ff,_#f8fafc_45%,_#ffffff_100%)] px-4 py-8'>
@@ -317,6 +353,8 @@ const VehicleDetailPage = () => {
   }
 
   const vehicleNumber = vehicle.registrationNumber || vehicle.vehicleNumber || 'N/A'
+  const rcImageUrl = getDocumentUrl(vehicle.rcImage)
+  const rcImageIsPdf = rcImageUrl && (rcImageUrl.toLowerCase().includes('.pdf') || rcImageUrl.startsWith('data:application/pdf'))
 
   return (
     <div className='min-h-screen bg-[radial-gradient(circle_at_top,_#eff6ff,_#f8fafc_45%,_#ffffff_100%)]'>
@@ -332,44 +370,52 @@ const VehicleDetailPage = () => {
         </div>
 
         <section className='overflow-hidden rounded-[34px] border border-slate-200 bg-white shadow-[0_24px_70px_-48px_rgba(15,23,42,0.55)]'>
-          <div className='bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 px-5 py-6 text-white lg:px-8'>
-            <div className='flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between'>
-              <div>
-                <p className='text-[11px] font-bold uppercase tracking-[0.26em] text-slate-300'>Vehicle RC Overview</p>
-                <div className='mt-4'>
-                  {renderVehicleNumber(vehicleNumber, vehicleDesign)}
-                </div>
-              </div>
-              <div className='grid grid-cols-1 gap-3 sm:grid-cols-3'>
+          <div className='grid gap-6 bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 px-5 py-6 text-white lg:grid-cols-[minmax(0,1.05fr)_360px] lg:px-8'>
+            <div>
+              <RcPlate vehicleNumber={vehicleNumber} />
+
+              <div className='mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3'>
                 <div className='rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur'>
-                  <p className='text-[10px] font-bold uppercase tracking-[0.22em] text-slate-300'>Owner</p>
-                  <p className='mt-1 text-sm font-semibold text-white'>{vehicle.ownerName || 'N/A'}</p>
+                  <p className='text-[10px] font-bold uppercase tracking-[0.22em] text-slate-300'>Registration Date</p>
+                  <p className='mt-1 text-sm font-semibold text-white'>{vehicle.dateOfRegistration || 'N/A'}</p>
                 </div>
-                <div className='rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur'>
-                  <p className='text-[10px] font-bold uppercase tracking-[0.22em] text-slate-300'>Chassis</p>
+                <div className='rounded-2xl border border-blue-200/20 bg-blue-400/10 px-4 py-3 backdrop-blur'>
+                  <p className='text-[10px] font-bold uppercase tracking-[0.22em] text-blue-100'>Chassis Number</p>
                   <p className='mt-1 break-all text-sm font-semibold text-white'>{vehicle.chassisNumber || 'N/A'}</p>
                 </div>
-                <div className='rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur'>
-                  <p className='text-[10px] font-bold uppercase tracking-[0.22em] text-slate-300'>Engine</p>
+                <div className='rounded-2xl border border-emerald-200/20 bg-emerald-400/10 px-4 py-3 backdrop-blur'>
+                  <p className='text-[10px] font-bold uppercase tracking-[0.22em] text-emerald-100'>Engine Number</p>
                   <p className='mt-1 break-all text-sm font-semibold text-white'>{vehicle.engineNumber || 'N/A'}</p>
                 </div>
+              </div>
+            </div>
+
+            <div className='rounded-[28px] border border-white/10 bg-white/10 p-4 backdrop-blur'>
+              <p className='text-[10px] font-bold uppercase tracking-[0.22em] text-slate-300'>Uploaded RC Document</p>
+              <div className='mt-3 overflow-hidden rounded-[22px] border border-white/10 bg-slate-950/30'>
+                {rcImageUrl ? (
+                  rcImageIsPdf ? (
+                    <div className='flex min-h-[260px] flex-col items-center justify-center gap-3 p-5 text-center'>
+                      <p className='text-sm font-semibold text-white'>RC PDF uploaded</p>
+                      <a href={rcImageUrl} target='_blank' rel='noreferrer' className='inline-flex items-center rounded-full bg-white px-4 py-2 text-sm font-bold text-slate-900'>
+                        Open RC PDF
+                      </a>
+                    </div>
+                  ) : (
+                    <img src={rcImageUrl} alt='Uploaded RC document' className='h-[320px] w-full object-contain bg-white/90' />
+                  )
+                ) : (
+                  <div className='flex min-h-[260px] items-center justify-center p-5 text-center text-sm font-semibold text-slate-300'>
+                    No RC document uploaded
+                  </div>
+                )}
               </div>
             </div>
           </div>
 
           <div className='border-t border-slate-200 p-5 lg:p-6'>
-            <div className='mb-4 flex items-center justify-between'>
-              <div>
-                <p className='text-[11px] font-bold uppercase tracking-[0.24em] text-slate-500'>Primary Record</p>
-                <h2 className='mt-1 text-2xl font-black text-slate-900'>Vehicle RC</h2>
-              </div>
-              <span className='inline-flex items-center rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700'>
-                {rcFields.length} fields
-              </span>
-            </div>
-
             <div className='grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4'>
-              {rcFields.map(([label, value]) => (
+              {rcAdditionalFields.map(([label, value]) => (
                 <div key={label} className='rounded-3xl border border-slate-200 bg-slate-50 p-4'>
                   <p className='text-[10px] font-bold uppercase tracking-[0.22em] text-slate-500'>{label}</p>
                   <p className='mt-2 break-words text-sm font-semibold text-slate-900'>{value}</p>

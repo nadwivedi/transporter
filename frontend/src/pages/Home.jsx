@@ -24,6 +24,7 @@ const Home = () => {
   const [showAddPucModal, setShowAddPucModal] = useState(false)
   const [showAddGpsModal, setShowAddGpsModal] = useState(false)
   const [showAddInsuranceModal, setShowAddInsuranceModal] = useState(false)
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false)
 
   useEffect(() => {
     fetchVehicles()
@@ -62,19 +63,90 @@ const Home = () => {
     return vehicleNumber.includes(searchQuery.trim().toUpperCase())
   })
 
+  const openAddVehicleModal = () => {
+    setShowMobileSidebar(false)
+    setShowAddVehicleModal(true)
+  }
+
+  const openAddFitnessModal = () => {
+    setShowMobileSidebar(false)
+    setShowAddFitnessModal(true)
+  }
+
+  const openAddTaxModal = () => {
+    setShowMobileSidebar(false)
+    setShowAddTaxModal(true)
+  }
+
+  const openAddPucModal = () => {
+    setShowMobileSidebar(false)
+    setShowAddPucModal(true)
+  }
+
+  const openAddGpsModal = () => {
+    setShowMobileSidebar(false)
+    setShowAddGpsModal(true)
+  }
+
+  const openAddInsuranceModal = () => {
+    setShowMobileSidebar(false)
+    setShowAddInsuranceModal(true)
+  }
+
   return (
     <div className='min-h-screen bg-[radial-gradient(circle_at_top,_#eef2ff,_#f8fafc_45%,_#ffffff_100%)]'>
       <main className='pl-2 pr-4 pt-6 pb-10 lg:pl-3 lg:pr-8 lg:pt-8'>
         <section className='w-full'>
+          {showMobileSidebar && (
+            <div className='fixed inset-0 z-40 bg-slate-950/45 lg:hidden' onClick={() => setShowMobileSidebar(false)} />
+          )}
+
+          <div className='mb-4 flex items-center justify-between lg:hidden'>
+            <button
+              type='button'
+              onClick={() => setShowMobileSidebar(true)}
+              className='inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-[0_16px_35px_-25px_rgba(15,23,42,0.55)]'
+            >
+              <svg className='h-5 w-5 text-indigo-600' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M4 6h16M4 12h16M4 18h16' />
+              </svg>
+              Menu
+            </button>
+          </div>
+
+          <div className={`fixed left-0 top-12 bottom-0 z-50 w-[290px] max-w-[85vw] transform overflow-y-auto bg-white p-3 shadow-[0_30px_60px_-25px_rgba(15,23,42,0.7)] transition-transform duration-300 lg:hidden ${showMobileSidebar ? 'translate-x-0' : '-translate-x-full'}`}>
+            <div className='mb-3 flex items-center justify-between px-1'>
+              <p className='text-sm font-bold text-slate-800'>Quick Actions</p>
+              <button
+                type='button'
+                onClick={() => setShowMobileSidebar(false)}
+                className='rounded-xl p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-800'
+              >
+                <svg className='h-5 w-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                  <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M6 18L18 6M6 6l12 12' />
+                </svg>
+              </button>
+            </div>
+
+            <Sidebar
+              onAddVehicle={openAddVehicleModal}
+              onAddFitness={openAddFitnessModal}
+              onAddTax={openAddTaxModal}
+              onAddPuc={openAddPucModal}
+              onAddGps={openAddGpsModal}
+              onAddInsurance={openAddInsuranceModal}
+            />
+          </div>
+
           <div className='grid grid-cols-1 gap-6 lg:grid-cols-[300px_minmax(0,1fr)]'>
-            <div className='rounded-[28px] border border-slate-200 bg-white shadow-[0_22px_50px_-32px_rgba(15,23,42,0.35)]'>
+            <div className='hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_22px_50px_-32px_rgba(15,23,42,0.35)] lg:block'>
               <Sidebar
-                onAddVehicle={() => setShowAddVehicleModal(true)}
-                onAddFitness={() => setShowAddFitnessModal(true)}
-                onAddTax={() => setShowAddTaxModal(true)}
-                onAddPuc={() => setShowAddPucModal(true)}
-                onAddGps={() => setShowAddGpsModal(true)}
-                onAddInsurance={() => setShowAddInsuranceModal(true)}
+                onAddVehicle={openAddVehicleModal}
+                onAddFitness={openAddFitnessModal}
+                onAddTax={openAddTaxModal}
+                onAddPuc={openAddPucModal}
+                onAddGps={openAddGpsModal}
+                onAddInsurance={openAddInsuranceModal}
               />
             </div>
 
