@@ -174,21 +174,21 @@ const RcPlate = ({ vehicleNumber }) => {
 
   if (!parts) {
     return (
-      <div className='mx-auto max-w-[320px] rounded-[26px] border-[4px] border-slate-900 bg-gradient-to-b from-amber-200 to-yellow-300 px-4 py-5 shadow-[inset_0_2px_10px_rgba(255,255,255,0.45)] lg:mx-0'>
-        <p className='text-left text-[11px] font-extrabold uppercase tracking-[0.34em] text-slate-700'>Registration No</p>
-        <div className='mt-3 text-left text-2xl font-black tracking-[0.18em] text-slate-950 md:text-3xl'>{vehicleNumber || 'N/A'}</div>
+      <div className='mx-auto max-w-[320px] rounded-[28px] border-[5px] border-slate-900 bg-gradient-to-b from-amber-200 to-yellow-300 px-5 py-6 shadow-[inset_0_2px_10px_rgba(255,255,255,0.45),0_8px_30px_-8px_rgba(0,0,0,0.3)] lg:mx-0'>
+        <p className='text-left text-[10px] font-extrabold uppercase tracking-[0.36em] text-slate-600'>Registration No</p>
+        <div className='mt-4 text-left text-2xl font-black tracking-[0.2em] text-slate-950 md:text-3xl'>{vehicleNumber || 'N/A'}</div>
       </div>
     )
   }
 
   return (
-    <div className='mx-auto max-w-[340px] rounded-[26px] border-[4px] border-slate-900 bg-gradient-to-b from-amber-200 to-yellow-300 px-4 py-5 shadow-[inset_0_2px_10px_rgba(255,255,255,0.45)] lg:mx-0'>
-      <p className='text-left text-[11px] font-extrabold uppercase tracking-[0.34em] text-slate-700'>Registration No</p>
-      <div className='mt-3 flex items-center gap-2 text-slate-950'>
-        <span className='rounded-md bg-white/50 px-2 py-1 text-lg font-black tracking-[0.12em] md:text-xl'>{parts.stateCode}</span>
-        <span className='rounded-md bg-white/50 px-2 py-1 text-lg font-black tracking-[0.12em] md:text-xl'>{parts.districtCode}</span>
-        <span className='rounded-md bg-white/50 px-2 py-1 text-lg font-black tracking-[0.12em] md:text-xl'>{parts.series}</span>
-        <span className='rounded-md bg-white/50 px-2 py-1 text-xl font-black tracking-[0.12em] md:text-2xl'>{parts.last4Digits}</span>
+    <div className='mx-auto max-w-[340px] rounded-[28px] border-[5px] border-slate-900 bg-gradient-to-b from-amber-200 to-yellow-300 px-5 py-6 shadow-[inset_0_2px_10px_rgba(255,255,255,0.45),0_8px_30px_-8px_rgba(0,0,0,0.3)] lg:mx-0'>
+      <p className='text-left text-[10px] font-extrabold uppercase tracking-[0.36em] text-slate-600'>Registration No</p>
+      <div className='mt-4 flex items-center gap-2 text-slate-950'>
+        <span className='rounded-lg bg-white/60 px-2.5 py-1.5 text-lg font-black tracking-[0.14em] md:text-xl shadow-sm'>{parts.stateCode}</span>
+        <span className='rounded-lg bg-white/60 px-2.5 py-1.5 text-lg font-black tracking-[0.14em] md:text-xl shadow-sm'>{parts.districtCode}</span>
+        <span className='rounded-lg bg-white/60 px-2.5 py-1.5 text-lg font-black tracking-[0.14em] md:text-xl shadow-sm'>{parts.series}</span>
+        <span className='rounded-lg bg-white/80 px-2.5 py-1.5 text-xl font-black tracking-[0.14em] md:text-2xl shadow-sm'>{parts.last4Digits}</span>
       </div>
     </div>
   )
@@ -444,66 +444,95 @@ const VehicleDetailPage = () => {
     <div className='min-h-screen bg-[radial-gradient(circle_at_top,_#eff6ff,_#f8fafc_45%,_#ffffff_100%)]'>
       <div className='mx-auto max-w-7xl px-4 py-6 lg:px-6 lg:py-8'>
         <section className='overflow-hidden rounded-[34px] border border-slate-200 bg-white shadow-[0_24px_70px_-48px_rgba(15,23,42,0.55)]'>
-<div className='grid gap-6 bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 px-5 py-6 text-white lg:grid-cols-[minmax(0,1fr)_380px] lg:px-6 lg:py-5'>
-            <div className='grid gap-5 content-start'>
+<div className='grid gap-8 bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 px-5 py-6 text-white lg:grid-cols-[minmax(0,1fr)_380px] lg:px-6 lg:py-5'>
+            <div className='grid gap-6 content-start'>
               <RcPlate vehicleNumber={vehicleNumber} />
 
-              <div className='grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3'>
-                <div className='rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur'>
-                  <p className='text-[10px] font-bold uppercase tracking-[0.22em] text-slate-300'>Owner Name</p>
-                  <p className='mt-1 text-sm font-semibold text-white'>{vehicle.ownerName || 'N/A'}</p>
+              <div>
+                <div className='mb-3 flex items-center gap-2'>
+                  <div className='h-px flex-1 bg-white/10'></div>
+                  <p className='text-[10px] font-bold uppercase tracking-[0.24em] text-slate-400'>Owner Details</p>
+                  <div className='h-px flex-1 bg-white/10'></div>
                 </div>
-                <div className='rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur'>
-                  <p className='text-[10px] font-bold uppercase tracking-[0.22em] text-slate-300'>S/W/D Of</p>
-                  <p className='mt-1 text-sm font-semibold text-white'>{vehicle.sonWifeDaughterOf || 'N/A'}</p>
-                </div>
-                <div className='rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur'>
-                  <p className='text-[10px] font-bold uppercase tracking-[0.22em] text-slate-300'>Registration Date</p>
-                  <p className='mt-1 text-sm font-semibold text-white'>{vehicle.dateOfRegistration || 'N/A'}</p>
-                </div>
-                <div className='rounded-2xl border border-blue-200/20 bg-blue-400/10 px-4 py-3 backdrop-blur'>
-                  <p className='text-[10px] font-bold uppercase tracking-[0.22em] text-blue-100'>Chassis Number</p>
-                  <p className='mt-1 break-all text-sm font-semibold text-white'>{vehicle.chassisNumber || 'N/A'}</p>
-                </div>
-                <div className='rounded-2xl border border-emerald-200/20 bg-emerald-400/10 px-4 py-3 backdrop-blur'>
-                  <p className='text-[10px] font-bold uppercase tracking-[0.22em] text-emerald-100'>Engine Number</p>
-                  <p className='mt-1 break-all text-sm font-semibold text-white'>{vehicle.engineNumber || 'N/A'}</p>
-                </div>
-                <div className='rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur'>
-                  <p className='text-[10px] font-bold uppercase tracking-[0.22em] text-slate-300'>Maker Name</p>
-                  <p className='mt-1 text-sm font-semibold text-white'>{vehicle.makerName || 'N/A'}</p>
-                </div>
-                <div className='rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur'>
-                  <p className='text-[10px] font-bold uppercase tracking-[0.22em] text-slate-300'>Maker Model</p>
-                  <p className='mt-1 text-sm font-semibold text-white'>{vehicle.makerModel || 'N/A'}</p>
-                </div>
-                <div className='rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur'>
-                  <p className='text-[10px] font-bold uppercase tracking-[0.22em] text-slate-300'>Vehicle Class</p>
-                  <p className='mt-1 text-sm font-semibold text-white'>{vehicle.vehicleClass || 'N/A'}</p>
-                </div>
-                <div className='rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur'>
-                  <p className='text-[10px] font-bold uppercase tracking-[0.22em] text-slate-300'>Fuel Type</p>
-                  <p className='mt-1 text-sm font-semibold text-white'>{vehicle.fuelType || 'N/A'}</p>
-                </div>
-                <div className='rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur'>
-                  <p className='text-[10px] font-bold uppercase tracking-[0.22em] text-slate-300'>Manufacture Year</p>
-                  <p className='mt-1 text-sm font-semibold text-white'>{vehicle.manufactureYear || 'N/A'}</p>
+                <div className='grid grid-cols-1 gap-2.5 sm:grid-cols-2'>
+                  <div className='rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur'>
+                    <p className='text-[10px] font-bold uppercase tracking-[0.22em] text-slate-300'>Owner Name</p>
+                    <p className='mt-1 text-sm font-bold text-white'>{vehicle.ownerName || 'N/A'}</p>
+                  </div>
+                  <div className='rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur'>
+                    <p className='text-[10px] font-bold uppercase tracking-[0.22em] text-slate-300'>S/W/D Of</p>
+                    <p className='mt-1 text-sm font-bold text-white'>{vehicle.sonWifeDaughterOf || 'N/A'}</p>
+                  </div>
+                  <div className='rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur sm:col-span-2'>
+                    <p className='text-[10px] font-bold uppercase tracking-[0.22em] text-slate-300'>Address</p>
+                    <p className='mt-1 text-sm font-bold text-white'>{vehicle.address || 'N/A'}</p>
+                  </div>
                 </div>
               </div>
 
-              <div className='rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur'>
-                <p className='text-[10px] font-bold uppercase tracking-[0.22em] text-slate-300'>Address</p>
-                <p className='mt-1 text-sm font-semibold text-white'>{vehicle.address || 'N/A'}</p>
+              <div>
+                <div className='mb-3 flex items-center gap-2'>
+                  <div className='h-px flex-1 bg-white/10'></div>
+                  <p className='text-[10px] font-bold uppercase tracking-[0.24em] text-slate-400'>Vehicle Details</p>
+                  <div className='h-px flex-1 bg-white/10'></div>
+                </div>
+                <div className='grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3'>
+                  <div className='rounded-2xl border border-blue-200/20 bg-blue-400/10 px-4 py-3 backdrop-blur'>
+                    <p className='text-[10px] font-bold uppercase tracking-[0.22em] text-blue-100'>Chassis Number</p>
+                    <p className='mt-1 break-all text-sm font-bold text-white'>{vehicle.chassisNumber || 'N/A'}</p>
+                  </div>
+                  <div className='rounded-2xl border border-emerald-200/20 bg-emerald-400/10 px-4 py-3 backdrop-blur'>
+                    <p className='text-[10px] font-bold uppercase tracking-[0.22em] text-emerald-100'>Engine Number</p>
+                    <p className='mt-1 break-all text-sm font-bold text-white'>{vehicle.engineNumber || 'N/A'}</p>
+                  </div>
+                  <div className='rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur'>
+                    <p className='text-[10px] font-bold uppercase tracking-[0.22em] text-slate-300'>Registration Date</p>
+                    <p className='mt-1 text-sm font-bold text-white'>{vehicle.dateOfRegistration || 'N/A'}</p>
+                  </div>
+                  <div className='rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur'>
+                    <p className='text-[10px] font-bold uppercase tracking-[0.22em] text-slate-300'>Maker Name</p>
+                    <p className='mt-1 text-sm font-bold text-white'>{vehicle.makerName || 'N/A'}</p>
+                  </div>
+                  <div className='rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur'>
+                    <p className='text-[10px] font-bold uppercase tracking-[0.22em] text-slate-300'>Maker Model</p>
+                    <p className='mt-1 text-sm font-bold text-white'>{vehicle.makerModel || 'N/A'}</p>
+                  </div>
+                  <div className='rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur'>
+                    <p className='text-[10px] font-bold uppercase tracking-[0.22em] text-slate-300'>Vehicle Class</p>
+                    <p className='mt-1 text-sm font-bold text-white'>{vehicle.vehicleClass || 'N/A'}</p>
+                  </div>
+                  <div className='rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur'>
+                    <p className='text-[10px] font-bold uppercase tracking-[0.22em] text-slate-300'>Fuel Type</p>
+                    <p className='mt-1 text-sm font-bold text-white'>{vehicle.fuelType || 'N/A'}</p>
+                  </div>
+                  <div className='rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur'>
+                    <p className='text-[10px] font-bold uppercase tracking-[0.22em] text-slate-300'>Manufacture Year</p>
+                    <p className='mt-1 text-sm font-bold text-white'>{vehicle.manufactureYear || 'N/A'}</p>
+                  </div>
+                </div>
               </div>
             </div>
 
             <div className='rounded-[28px] border border-white/10 bg-white/10 p-4 backdrop-blur'>
-              <p className='text-[10px] font-bold uppercase tracking-[0.22em] text-slate-300'>Uploaded RC Document</p>
-              <div className='mt-3 overflow-hidden rounded-[22px] border border-white/10 bg-slate-950/30'>
+              <div className='mb-3 flex items-center justify-between'>
+                <p className='text-[10px] font-bold uppercase tracking-[0.22em] text-slate-300'>Uploaded RC Document</p>
+                {rcImageUrl && (
+                  <button
+                    type='button'
+                    onClick={handleShareRc}
+                    className='inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-white shadow-sm transition hover:bg-white/30'
+                    title='Share RC'
+                    aria-label='Share RC'
+                  >
+                    <Share className='h-4 w-4' />
+                  </button>
+                )}
+              </div>
+              <div className='mt-1 overflow-hidden rounded-[22px] border border-white/10 bg-slate-950/30'>
                 {rcImageUrl ? (
                   rcImageIsPdf ? (
                     <div className='flex min-h-[260px] flex-col items-center justify-center gap-3 p-5 text-center'>
-                      <p className='text-sm font-semibold text-white'>RC PDF uploaded</p>
+                      <p className='text-sm font-bold text-white'>RC PDF uploaded</p>
                       <a href={rcImageUrl} target='_blank' rel='noreferrer' className='inline-flex items-center rounded-full bg-white px-4 py-2 text-sm font-bold text-slate-900'>
                         Open RC PDF
                       </a>
@@ -517,22 +546,11 @@ const VehicleDetailPage = () => {
                     />
                   )
                 ) : (
-                  <div className='flex min-h-[260px] items-center justify-center p-5 text-center text-sm font-semibold text-slate-300'>
+                  <div className='flex min-h-[260px] items-center justify-center p-5 text-center text-sm font-bold text-slate-400'>
                     No RC document uploaded
                   </div>
                 )}
               </div>
-              {rcImageUrl && (
-                <button
-                  type='button'
-                  onClick={handleShareRc}
-                  className='mt-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white text-slate-900 shadow-sm transition hover:bg-slate-100'
-                  title='Share RC'
-                  aria-label='Share RC'
-                >
-                  <Share className='h-5 w-5' />
-                </button>
-              )}
             </div>
           </div>
         </section>
@@ -544,13 +562,16 @@ const VehicleDetailPage = () => {
           title='RC Document Image'
         />
 
-        <section className='mt-6 overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_24px_70px_-48px_rgba(15,23,42,0.55)]'>
-          <div className='border-b border-slate-200 px-5 py-5'>
+<section className='mt-6 overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_24px_70px_-48px_rgba(15,23,42,0.55)]'>
+          <div className='flex items-center justify-between border-b border-slate-200 px-5 py-5'>
             <h2 className='text-xl font-black text-slate-900'>Vehicle Documents</h2>
+            <span className='rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600'>
+              {relatedDocumentRows.length} document{relatedDocumentRows.length === 1 ? '' : 's'}
+            </span>
           </div>
 
           {relatedDocumentRows.length === 0 ? (
-            <div className='px-5 py-8 text-sm font-semibold text-slate-500'>No related records found for this vehicle.</div>
+            <div className='px-5 py-8 text-sm font-bold text-slate-400'>No related records found for this vehicle.</div>
           ) : (
             <div className='overflow-x-auto'>
               <table className='min-w-full divide-y divide-slate-200'>
@@ -559,18 +580,18 @@ const VehicleDetailPage = () => {
                     <th className='px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500'>Document Type</th>
                     <th className='px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500'>Valid From</th>
                     <th className='px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500'>Valid To</th>
-                    <th className='px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500'>Document Image</th>
+                    <th className='px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500'>Document</th>
                   </tr>
                 </thead>
                 <tbody className='divide-y divide-slate-200 bg-white'>
                   {relatedDocumentRows.map((row) => (
                     <tr key={row.id} className='align-top'>
                       <td className='px-4 py-4 text-sm font-bold text-slate-900'>{row.type}</td>
-                      <td className='px-4 py-4 text-sm font-bold text-emerald-700'>{row.validFrom}</td>
+                      <td className='px-4 py-4 text-sm font-bold text-emerald-600'>{row.validFrom}</td>
                       <td className='px-4 py-4 text-sm font-bold text-red-600'>{row.validTo}</td>
                       <td className='px-4 py-4'>
                         {!row.hasDocument ? (
-                          <span className='text-sm font-semibold text-slate-400'>No document</span>
+                          <span className='text-sm font-bold text-slate-400'>No document</span>
                         ) : row.isPdf ? (
                           <div className='flex items-center gap-2'>
                             <a
