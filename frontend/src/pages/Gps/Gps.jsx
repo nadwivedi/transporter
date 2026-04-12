@@ -11,7 +11,7 @@ import StatisticsCard from "../../components/StatisticsCard";
 import MobileCardView from "../../components/MobileCardView";
 import { getTheme, getVehicleNumberDesign } from "../../context/ThemeContext";
 
-const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080";
+const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
 
 import { getStatusColor, getStatusText } from "../../utils/statusUtils";
 import { getVehicleNumberParts } from "../../utils/vehicleNoCheck";

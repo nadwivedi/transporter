@@ -2,6 +2,7 @@ const express = require('express')
 const {
   getVehicles,
   getVehicleStatistics,
+  getVehicleDetail,
   searchVehicle,
   checkVehicleExists,
   createVehicle,
@@ -13,6 +14,7 @@ const router = express.Router()
 
 router.get('/', getVehicles)
 router.get('/statistics', getVehicleStatistics)
+router.get('/:id/detail', getVehicleDetail)
 router.get('/search/:searchInput', searchVehicle)
 router.get('/check-exists/:regNumber', checkVehicleExists)
 router.post('/', createVehicle)

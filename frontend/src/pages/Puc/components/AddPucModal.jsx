@@ -5,7 +5,7 @@ import { validateVehicleNumberRealtime } from '../../../utils/vehicleNoCheck'
 import { handleSmartDateInput, normalizeAIExtractedDate } from '../../../utils/dateFormatter'
 import DocumentScannerPreview from '../../../components/DocumentScannerPreview'
 
-const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080'
+const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'
 
 const AddPucModal = ({ isOpen, onClose, onSubmit, prefilledVehicleNumber = '', prefilledOwnerName = '' }) => {
   const isOcrUpdate = useRef(false)
@@ -25,6 +25,14 @@ const AddPucModal = ({ isOpen, onClose, onSubmit, prefilledVehicleNumber = '', p
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [scanningFile, setScanningFile] = useState(null)
   const [isExtractingPuc, setIsExtractingPuc] = useState(false)
+  const [uploadedPucDocument, setUploadedPucDocument] = useState(null)
+  const [uploadedPucFile, setUploadedPucFile] = useState(null)
+
+  useEffect(() => {
+    return () => {
+      if (uploadedPucDocument?.previewUrl) URL.revokeObjectURL(uploadedPucDocument.previewUrl)
+    }
+  }, [uploadedPucDocument])
 
   useEffect(() => {
     if (!isOpen) {
@@ -42,6 +50,11 @@ const AddPucModal = ({ isOpen, onClose, onSubmit, prefilledVehicleNumber = '', p
       setSelectedDropdownIndex(0)
       setScanningFile(null)
       setIsExtractingPuc(false)
+      setUploadedPucDocument(prev => {
+        if (prev?.previewUrl) URL.revokeObjectURL(prev.previewUrl)
+        return null
+      })
+      setUploadedPucFile(null)
     }
   }, [isOpen, prefilledVehicleNumber, prefilledOwnerName])
 
@@ -293,6 +306,11 @@ const AddPucModal = ({ isOpen, onClose, onSubmit, prefilledVehicleNumber = '', p
     const file = e.target.files?.[0]
     if (!file) return
     if (file.type === 'application/pdf') {
+      setUploadedPucFile(file)
+      setUploadedPucDocument(prev => {
+        if (prev?.previewUrl) URL.revokeObjectURL(prev.previewUrl)
+        return { name: file.name, type: 'pdf', previewUrl: URL.createObjectURL(file) }
+      })
       e.target.value = ''
       await processExtraction(file)
       return
@@ -307,6 +325,11 @@ const AddPucModal = ({ isOpen, onClose, onSubmit, prefilledVehicleNumber = '', p
 
   const handleScannerConfirm = async (processedImageFile) => {
     setScanningFile(null)
+    setUploadedPucFile(processedImageFile)
+    setUploadedPucDocument(prev => {
+      if (prev?.previewUrl) URL.revokeObjectURL(prev.previewUrl)
+      return { name: processedImageFile.name || 'puc-document.jpg', type: 'image', previewUrl: URL.createObjectURL(processedImageFile) }
+    })
     await processExtraction(processedImageFile)
   }
 
@@ -323,11 +346,21 @@ const AddPucModal = ({ isOpen, onClose, onSubmit, prefilledVehicleNumber = '', p
 
     setIsSubmitting(true)
     try {
+      let pucDocumentData = ''
+      if (uploadedPucFile) {
+        pucDocumentData = await new Promise((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onloadend = () => resolve(reader.result)
+          reader.onerror = reject
+          reader.readAsDataURL(uploadedPucFile)
+        })
+      }
       const dataToSubmit = {
         vehicleNumber: formData.vehicleNumber,
         ownerName: formData.ownerName,
         validFrom: formData.validFrom,
-        validTo: formData.validTo
+        validTo: formData.validTo,
+        pucDocumentData
       }
       const response = await axios.post(`${API_URL}/api/puc`, dataToSubmit, { withCredentials: true })
       if (response.data.success) {
@@ -432,6 +465,28 @@ const AddPucModal = ({ isOpen, onClose, onSubmit, prefilledVehicleNumber = '', p
                   </div>
                 </div>
               </div>
+
+              {uploadedPucDocument && (
+                <div className='bg-gradient-to-r from-slate-50 to-emerald-50 border-2 border-slate-200 rounded-xl p-3 md:p-6'>
+                  <h3 className='text-base md:text-lg font-bold text-gray-800 mb-3 md:mb-4 flex items-center gap-2'>
+                    <span className='bg-slate-700 text-white w-6 h-6 md:w-8 md:h-8 rounded-full flex items-center justify-center text-xs md:text-sm'>3</span>
+                    Uploaded PUC Document
+                  </h3>
+                  <div className='mb-3 flex items-center justify-between gap-3 rounded-lg bg-white/80 px-3 py-2 border border-slate-200'>
+                    <div className='min-w-0'>
+                      <p className='text-sm font-semibold text-slate-800 truncate'>{uploadedPucDocument.name}</p>
+                      <p className='text-xs text-slate-500'>{uploadedPucDocument.type === 'pdf' ? 'PDF preview' : 'Image preview'}</p>
+                    </div>
+                  </div>
+                  {uploadedPucDocument.type === 'pdf' ? (
+                    <iframe src={uploadedPucDocument.previewUrl} title='Uploaded PUC PDF' className='w-full h-80 rounded-xl border border-slate-200 bg-white' />
+                  ) : (
+                    <div className='rounded-xl border border-slate-200 bg-white p-2'>
+                      <img src={uploadedPucDocument.previewUrl} alt='Uploaded PUC document' className='w-full max-h-80 object-contain rounded-lg' />
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className='border-t border-gray-200 p-3 md:p-4 bg-gray-50 flex flex-col md:flex-row justify-between items-center gap-3 flex-shrink-0'>

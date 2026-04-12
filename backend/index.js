@@ -1,6 +1,12 @@
+require('dotenv').config()
 const express = require('express')
 const mongoose = require('mongoose')
 const vehicleRoutes = require('./routes/vehicleRoutes')
+const fitnessRoutes = require('./routes/fitnessRoutes')
+const taxRoutes = require('./routes/taxRoutes')
+const pucRoutes = require('./routes/pucRoutes')
+const gpsRoutes = require('./routes/gpsRoutes')
+const ocrRoutes = require('./routes/ocrRoutes')
 
 const app = express()
 const PORT = process.env.PORT || 5000
@@ -29,6 +35,11 @@ app.get('/api/health', (_req, res) => {
 })
 
 app.use('/api/vehicle', vehicleRoutes)
+app.use('/api/fitness', fitnessRoutes)
+app.use('/api/tax', taxRoutes)
+app.use('/api/puc', pucRoutes)
+app.use('/api/gps', gpsRoutes)
+app.use('/api/ocr', ocrRoutes)
 
 mongoose
   .connect(MONGODB_URI)

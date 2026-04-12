@@ -24,6 +24,30 @@ const taxSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  mobileNumber: {
+    type: String,
+    trim: true
+  },
+  taxDocument: {
+    type: String,
+    trim: true
+  },
+  taxAmount: {
+    type: Number,
+    default: 0
+  },
+  totalAmount: {
+    type: Number,
+    default: 0
+  },
+  paidAmount: {
+    type: Number,
+    default: 0
+  },
+  balanceAmount: {
+    type: Number,
+    default: 0
+  },
   taxFrom: {
     type: String,
     required: true

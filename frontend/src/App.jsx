@@ -7,6 +7,7 @@ import Home from './pages/Home'
 import Login from './pages/Login'
 import Setting from './pages/Setting'
 import VehicleRegistration from './pages/VehicleRegistration/VehicleRegistration'
+import VehicleDetailPage from './pages/VehicleRegistration/VehicleDetailPage'
 import Insurance from './pages/Insurance/Insurance'
 import Fitness from './pages/Fitness/Fitness'
 import Tax from './pages/Tax/Tax'
@@ -24,6 +25,7 @@ function App() {
             <Route path='/login' element={<Login />} />
             <Route path='/setting' element={<Setting />} />
             <Route path='/vehicle' element={<VehicleRegistration />} />
+            <Route path='/vehicle/:id/detail' element={<VehicleDetailPage />} />
             <Route path='/insurance' element={<Insurance />} />
             <Route path='/fitness' element={<Fitness />} />
             <Route path='/tax' element={<Tax />} />

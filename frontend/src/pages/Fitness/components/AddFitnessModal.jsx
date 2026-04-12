@@ -496,8 +496,17 @@ const AddFitnessModal = ({ isOpen, onClose, onSubmit, prefilledVehicleNumber = '
 
         // Call onSubmit callback to notify parent (for refresh)
         if (onSubmit) {
-          onSubmit();
+          await onSubmit();
         }
+
+        setFormData({
+          vehicleNumber: '',
+          ownerName: '',
+          partyId: '',
+          validFrom: '',
+          validTo: ''
+        });
+        setVehicleValidation({ isValid: false, message: '' });
 
         // Close modal
         onClose();
@@ -508,16 +517,6 @@ const AddFitnessModal = ({ isOpen, onClose, onSubmit, prefilledVehicleNumber = '
     } finally {
       setIsSubmitting(false);
     }
-    // Reset form
-    setFormData({
-      vehicleNumber: '',
-      ownerName: '',
-      partyId: '',
-      validFrom: '',
-      validTo: ''
-    });
-    setVehicleValidation({ isValid: false, message: '' });
-    onClose();
   };
 
   if (!isOpen) return null;
@@ -764,7 +763,6 @@ const AddFitnessModal = ({ isOpen, onClose, onSubmit, prefilledVehicleNumber = '
               <button
                 type='submit'
                 disabled={isSubmitting}
-                onClick={() => document.querySelector('form').requestSubmit()}
                 className='flex-1 md:flex-none px-6 md:px-8 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:shadow-lg font-semibold transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
               >
                 {isSubmitting ? (

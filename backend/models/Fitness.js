@@ -18,6 +18,18 @@ const fitnessSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  mobileNumber: {
+    type: String,
+    trim: true
+  },
+  partyId: {
+    type: String,
+    trim: true
+  },
+  fitnessDocument: {
+    type: String,
+    trim: true
+  },
   validFrom: {
     type: String,
     required: true
@@ -26,6 +38,28 @@ const fitnessSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  totalFee: {
+    type: Number,
+    default: 0
+  },
+  paid: {
+    type: Number,
+    default: 0
+  },
+  balance: {
+    type: Number,
+    default: 0
+  },
+  feeBreakup: [{
+    name: {
+      type: String,
+      trim: true
+    },
+    amount: {
+      type: Number,
+      default: 0
+    }
+  }],
 
   // Renewal status - set to true when this fitness has been renewed
   isRenewed: {

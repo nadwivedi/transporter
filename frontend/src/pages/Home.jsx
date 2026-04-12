@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import Sidebar from '../components/Sidebar'
 import AddVehicleModal from './VehicleRegistration/components/AddVehicleModal'
@@ -11,6 +12,7 @@ import AddInsuranceModal from './Insurance/components/AddInsuranceModal'
 const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'
 
 const Home = () => {
+  const navigate = useNavigate()
   const [vehicles, setVehicles] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -90,7 +92,16 @@ const Home = () => {
                     return (
                       <article
                         key={vehicle._id}
-                        className='group overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_18px_45px_-30px_rgba(15,23,42,0.6)] transition-transform duration-200 hover:-translate-y-1'
+                        onClick={() => navigate(`/vehicle/${vehicle._id}/detail`)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault()
+                            navigate(`/vehicle/${vehicle._id}/detail`)
+                          }
+                        }}
+                        role='button'
+                        tabIndex={0}
+                        className='group cursor-pointer overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_18px_45px_-30px_rgba(15,23,42,0.6)] transition-transform duration-200 hover:-translate-y-1'
                       >
                         <div className='bg-gradient-to-r from-slate-900 via-indigo-900 to-slate-900 px-5 py-4 text-white'>
                           <p className='text-[11px] font-bold uppercase tracking-[0.24em] text-slate-300'>Vehicle Card</p>

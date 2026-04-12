@@ -9,7 +9,6 @@ import StatisticsCard from '../../components/StatisticsCard'
 import { getTheme, getVehicleNumberDesign } from '../../context/ThemeContext'
 import { getVehicleNumberParts } from '../../utils/vehicleNoCheck'
 import AddVehicleModal from './components/AddVehicleModal'
-import ViewVehicle from './components/ViewVehicle'
 
 const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'
 
@@ -26,8 +25,6 @@ const VehicleRegistration = () => {
   const [statistics, setStatistics] = useState({
     total: 0
   })
-  const [selectedRegistration, setSelectedRegistration] = useState(null)
-  const [showDetailsModal, setShowDetailsModal] = useState(false)
   const [pagination, setPagination] = useState({
     currentPage: 1,
     totalPages: 1,
@@ -135,8 +132,7 @@ const VehicleRegistration = () => {
   }
 
   const handleViewDetails = (registration) => {
-    setSelectedRegistration(registration)
-    setShowDetailsModal(true)
+    navigate(`/vehicle/${registration._id}/detail`)
   }
 
   const handleShare = async (registration) => {
@@ -597,16 +593,6 @@ const VehicleRegistration = () => {
             fetchStatistics()
           }}
           editData={editData}
-        />
-      )}
-
-      {/* View Details Modal */}
-      {showDetailsModal && (
-        <ViewVehicle
-          isOpen={showDetailsModal}
-          onClose={() => setShowDetailsModal(false)}
-          selectedRegistration={selectedRegistration}
-          onRefresh={() => fetchRegistrations()}
         />
       )}
     </>

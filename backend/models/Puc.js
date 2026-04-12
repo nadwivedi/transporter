@@ -18,6 +18,14 @@ const pucSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  mobileNumber: {
+    type: String,
+    trim: true
+  },
+  pucDocument: {
+    type: String,
+    trim: true
+  },
   validFrom: {
     type: String,
     required: true
@@ -25,6 +33,18 @@ const pucSchema = new mongoose.Schema({
   validTo: {
     type: String,
     required: true
+  },
+  totalFee: {
+    type: Number,
+    default: 0
+  },
+  paid: {
+    type: Number,
+    default: 0
+  },
+  balance: {
+    type: Number,
+    default: 0
   },
 
   // Renewal status - set to true when this PUC has been renewed

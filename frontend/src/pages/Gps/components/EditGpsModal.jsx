@@ -4,7 +4,7 @@ import { validateVehicleNumberRealtime } from '../../../utils/vehicleNoCheck'
 import { handlePaymentCalculation } from '../../../utils/paymentValidation'
 import { handleSmartDateInput } from '../../../utils/dateFormatter'
 
-const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080'
+const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'
 
 const EditGpsModal = ({ isOpen, onClose, onSubmit, gps }) => {
   const [formData, setFormData] = useState({

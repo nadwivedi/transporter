@@ -19,6 +19,8 @@ const AddTaxModal = ({ isOpen, onClose, onSubmit, prefilledVehicleNumber = '', p
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [scanningFile, setScanningFile] = useState(null)
   const [isExtractingTax, setIsExtractingTax] = useState(false)
+  const [uploadedTaxDocument, setUploadedTaxDocument] = useState(null)
+  const [uploadedTaxFile, setUploadedTaxFile] = useState(null)
 
   const [formData, setFormData] = useState({
     receiptNo: '',
@@ -30,6 +32,12 @@ const AddTaxModal = ({ isOpen, onClose, onSubmit, prefilledVehicleNumber = '', p
     taxTo: ''
   })
   const [taxPeriod, setTaxPeriod] = useState('Q1') // Q1=3mo, Q2=6mo, Q3=9mo, Q4=12mo
+
+  useEffect(() => {
+    return () => {
+      if (uploadedTaxDocument?.previewUrl) URL.revokeObjectURL(uploadedTaxDocument.previewUrl)
+    }
+  }, [uploadedTaxDocument])
 
   // Validate date and check if it's valid
   const isValidDate = (day, month, year) => {
@@ -64,6 +72,11 @@ const AddTaxModal = ({ isOpen, onClose, onSubmit, prefilledVehicleNumber = '', p
       setSelectedDropdownIndex(0)
       setScanningFile(null)
       setIsExtractingTax(false)
+      setUploadedTaxDocument(prev => {
+        if (prev?.previewUrl) URL.revokeObjectURL(prev.previewUrl)
+        return null
+      })
+      setUploadedTaxFile(null)
     }
   }, [isOpen, prefilledVehicleNumber, prefilledOwnerName, prefilledMobileNumber])
 
@@ -425,6 +438,11 @@ const AddTaxModal = ({ isOpen, onClose, onSubmit, prefilledVehicleNumber = '', p
     if (!file) return;
 
     if (file.type === 'application/pdf') {
+       setUploadedTaxFile(file);
+       setUploadedTaxDocument(prev => {
+         if (prev?.previewUrl) URL.revokeObjectURL(prev.previewUrl);
+         return { name: file.name, type: 'pdf', previewUrl: URL.createObjectURL(file) };
+       });
        // Direct upload to backend for parsing
        e.target.value = '';
        await processExtraction(file);
@@ -440,6 +458,11 @@ const AddTaxModal = ({ isOpen, onClose, onSubmit, prefilledVehicleNumber = '', p
 
   const handleScannerConfirm = async (processedImageFile) => {
     setScanningFile(null);
+    setUploadedTaxFile(processedImageFile);
+    setUploadedTaxDocument(prev => {
+      if (prev?.previewUrl) URL.revokeObjectURL(prev.previewUrl);
+      return { name: processedImageFile.name || 'tax-document.jpg', type: 'image', previewUrl: URL.createObjectURL(processedImageFile) };
+    });
     await processExtraction(processedImageFile);
   }
 
@@ -537,6 +560,14 @@ const AddTaxModal = ({ isOpen, onClose, onSubmit, prefilledVehicleNumber = '', p
     // Make API call
     setIsSubmitting(true)
     try {
+      if (uploadedTaxFile) {
+        dataToSubmit.taxDocumentData = await new Promise((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onloadend = () => resolve(reader.result)
+          reader.onerror = reject
+          reader.readAsDataURL(uploadedTaxFile)
+        })
+      }
       const response = await axios.post(`${API_URL}/api/tax`, dataToSubmit, {
         withCredentials: true
       })
@@ -924,6 +955,28 @@ const AddTaxModal = ({ isOpen, onClose, onSubmit, prefilledVehicleNumber = '', p
                 </div>
               </div>
             </div>
+
+            {uploadedTaxDocument && (
+              <div className='bg-gradient-to-r from-slate-50 to-indigo-50 border-2 border-slate-200 rounded-xl p-3 md:p-6 mb-4 md:mb-6'>
+                <h3 className='text-base md:text-lg font-bold text-gray-800 mb-3 md:mb-4 flex items-center gap-2'>
+                  <span className='bg-slate-700 text-white w-6 h-6 md:w-8 md:h-8 rounded-full flex items-center justify-center text-xs md:text-sm'>3</span>
+                  Uploaded Tax Document
+                </h3>
+                <div className='mb-3 flex items-center justify-between gap-3 rounded-lg bg-white/80 px-3 py-2 border border-slate-200'>
+                  <div className='min-w-0'>
+                    <p className='text-sm font-semibold text-slate-800 truncate'>{uploadedTaxDocument.name}</p>
+                    <p className='text-xs text-slate-500'>{uploadedTaxDocument.type === 'pdf' ? 'PDF preview' : 'Image preview'}</p>
+                  </div>
+                </div>
+                {uploadedTaxDocument.type === 'pdf' ? (
+                  <iframe src={uploadedTaxDocument.previewUrl} title='Uploaded Tax PDF' className='w-full h-80 rounded-xl border border-slate-200 bg-white' />
+                ) : (
+                  <div className='rounded-xl border border-slate-200 bg-white p-2'>
+                    <img src={uploadedTaxDocument.previewUrl} alt='Uploaded Tax document' className='w-full max-h-80 object-contain rounded-lg' />
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Footer Actions */}

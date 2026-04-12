@@ -1,4 +1,9 @@
 const Vehicle = require('../models/Vehicle')
+const Fitness = require('../models/Fitness')
+const Tax = require('../models/Tax')
+const Puc = require('../models/Puc')
+const Insurance = require('../models/Insurance')
+const Gps = require('../models/Gps')
 
 const buildSearchFilter = (search) => {
   if (!search || !search.trim()) return {}
@@ -55,6 +60,58 @@ const getVehicleStatistics = async (_req, res) => {
   }
 }
 
+const getVehicleDetail = async (req, res) => {
+  try {
+    const vehicle = await Vehicle.findById(req.params.id).lean()
+
+    if (!vehicle) {
+      return res.status(404).json({ success: false, message: 'Vehicle not found' })
+    }
+
+    const vehicleNumber = (vehicle.registrationNumber || vehicle.vehicleNumber || '').trim().toUpperCase()
+
+    const [fitnessRecords, taxRecords, pucRecords, insuranceRecords, gpsRecords] = await Promise.all([
+      Fitness.find({ vehicleNumber }).sort({ createdAt: -1 }).lean(),
+      Tax.find({ vehicleNumber }).sort({ createdAt: -1 }).lean(),
+      Puc.find({ vehicleNumber }).sort({ createdAt: -1 }).lean(),
+      Insurance.find({ vehicleNumber }).sort({ createdAt: -1 }).lean(),
+      Gps.find({ vehicleNumber }).sort({ createdAt: -1 }).lean(),
+    ])
+
+    res.json({
+      success: true,
+      data: {
+        vehicle,
+        overview: {
+          vehicleNumber,
+          totalRelatedRecords:
+            fitnessRecords.length +
+            taxRecords.length +
+            pucRecords.length +
+            insuranceRecords.length +
+            gpsRecords.length,
+          fitnessCount: fitnessRecords.length,
+          taxCount: taxRecords.length,
+          pucCount: pucRecords.length,
+          insuranceCount: insuranceRecords.length,
+          gpsCount: gpsRecords.length,
+        },
+        records: {
+          rc: vehicle,
+          fitness: fitnessRecords,
+          tax: taxRecords,
+          puc: pucRecords,
+          insurance: insuranceRecords,
+          gps: gpsRecords,
+        },
+      },
+    })
+  } catch (error) {
+    console.error('Error fetching vehicle detail:', error)
+    res.status(500).json({ success: false, message: 'Failed to fetch vehicle detail' })
+  }
+}
+
 const searchVehicle = async (req, res) => {
   try {
     const searchInput = (req.params.searchInput || '').trim()
@@ -65,7 +122,15 @@ const searchVehicle = async (req, res) => {
     const regex = new RegExp(searchInput, 'i')
     const data = await Vehicle.find({ registrationNumber: regex }).sort({ createdAt: -1 }).limit(10).lean()
 
-    res.json({ success: true, data })
+    if (!data.length) {
+      return res.status(404).json({ success: false, message: 'No vehicles found matching the search' })
+    }
+
+    if (data.length === 1) {
+      return res.json({ success: true, multiple: false, data: data[0] })
+    }
+
+    res.json({ success: true, multiple: true, data })
   } catch (error) {
     console.error('Error searching vehicle:', error)
     res.status(500).json({ success: false, message: 'Failed to search vehicle' })
@@ -155,6 +220,7 @@ const deleteVehicle = async (req, res) => {
 module.exports = {
   getVehicles,
   getVehicleStatistics,
+  getVehicleDetail,
   searchVehicle,
   checkVehicleExists,
   createVehicle,

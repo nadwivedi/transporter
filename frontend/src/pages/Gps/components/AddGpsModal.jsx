@@ -5,7 +5,7 @@ import { validateVehicleNumberRealtime } from '../../../utils/vehicleNoCheck'
 import { handleSmartDateInput, normalizeAIExtractedDate } from '../../../utils/dateFormatter'
 import DocumentScannerPreview from '../../../components/DocumentScannerPreview'
 
-const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080'
+const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'
 
 const AddGpsModal = ({ isOpen, onClose, onSubmit, prefilledVehicleNumber = '', prefilledOwnerName = '' }) => {
   const isOcrUpdate = useRef(false)

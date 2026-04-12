@@ -18,6 +18,10 @@ const gpsSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  mobileNumber: {
+    type: String,
+    trim: true
+  },
   gpsDocument: {
     type: String,
     trim: true
@@ -29,6 +33,18 @@ const gpsSchema = new mongoose.Schema({
   validTo: {
     type: String,
     required: true
+  },
+  totalFee: {
+    type: Number,
+    default: 0
+  },
+  paid: {
+    type: Number,
+    default: 0
+  },
+  balance: {
+    type: Number,
+    default: 0
   },
 
   // Renewal status - set to true when this GPS has been renewed
