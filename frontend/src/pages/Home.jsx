@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import Sidebar from '../components/Sidebar'
+import SearchBar from '../components/SearchBar'
 import AddVehicleModal from './VehicleRegistration/components/AddVehicleModal'
 import AddFitnessModal from './Fitness/components/AddFitnessModal'
 import AddTaxModal from './Tax/components/AddTaxModal'
@@ -14,6 +15,7 @@ const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'
 const Home = () => {
   const navigate = useNavigate()
   const [vehicles, setVehicles] = useState([])
+  const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [showAddVehicleModal, setShowAddVehicleModal] = useState(false)
@@ -55,6 +57,11 @@ const Home = () => {
       }
     }
 
+  const filteredVehicles = vehicles.filter((vehicle) => {
+    const vehicleNumber = String(vehicle.registrationNumber || vehicle.vehicleNumber || '').toUpperCase()
+    return vehicleNumber.includes(searchQuery.trim().toUpperCase())
+  })
+
   return (
     <div className='min-h-screen bg-[radial-gradient(circle_at_top,_#eef2ff,_#f8fafc_45%,_#ffffff_100%)]'>
       <main className='pl-2 pr-4 pt-6 pb-10 lg:pl-3 lg:pr-8 lg:pt-8'>
@@ -70,6 +77,15 @@ const Home = () => {
             />
 
             <div>
+              <div className='mb-4 flex justify-start'>
+                <SearchBar
+                  value={searchQuery}
+                  onChange={setSearchQuery}
+                  placeholder='Search by vehicle number...'
+                  toUpperCase={true}
+                />
+              </div>
+
               {loading ? (
                 <div className='grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3'>
                   {Array.from({ length: 6 }).map((_, index) => (
@@ -80,13 +96,13 @@ const Home = () => {
                 <div className='rounded-3xl border border-red-200 bg-red-50 px-5 py-6 text-center text-sm font-semibold text-red-600'>
                   {error}
                 </div>
-              ) : vehicles.length === 0 ? (
+              ) : filteredVehicles.length === 0 ? (
                 <div className='rounded-3xl border border-slate-200 bg-white px-5 py-10 text-center'>
-                  <p className='text-lg font-bold text-slate-800'>No registered vehicles found</p>
+                  <p className='text-lg font-bold text-slate-800'>No matching vehicles found</p>
                 </div>
               ) : (
                 <div className='grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3'>
-                  {vehicles.map((vehicle) => {
+                  {filteredVehicles.map((vehicle) => {
                     const vehicleNumber = (vehicle.registrationNumber || vehicle.vehicleNumber || 'N/A').toUpperCase()
 
                     return (
@@ -114,16 +130,16 @@ const Home = () => {
                           </div>
 
                           <div className='mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2'>
-                            <div className='rounded-2xl bg-slate-50 px-4 py-3'>
-                              <p className='text-[11px] font-bold uppercase tracking-[0.22em] text-slate-500'>Chassis No</p>
-                              <p className='mt-1 truncate font-mono text-xs font-semibold text-slate-900 sm:text-[13px]' title={vehicle.chassisNumber || 'N/A'}>
+                            <div className='rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3'>
+                              <p className='text-[11px] font-bold uppercase tracking-[0.22em] text-blue-600'>Chassis No</p>
+                              <p className='mt-1 truncate font-mono text-xs font-semibold text-blue-950 sm:text-[13px]' title={vehicle.chassisNumber || 'N/A'}>
                                 {vehicle.chassisNumber || 'N/A'}
                               </p>
                             </div>
 
-                            <div className='rounded-2xl bg-slate-50 px-4 py-3'>
-                              <p className='text-[11px] font-bold uppercase tracking-[0.22em] text-slate-500'>Engine No</p>
-                              <p className='mt-1 truncate font-mono text-xs font-semibold text-slate-900 sm:text-[13px]' title={vehicle.engineNumber || 'N/A'}>
+                            <div className='rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3'>
+                              <p className='text-[11px] font-bold uppercase tracking-[0.22em] text-emerald-600'>Engine No</p>
+                              <p className='mt-1 truncate font-mono text-xs font-semibold text-emerald-950 sm:text-[13px]' title={vehicle.engineNumber || 'N/A'}>
                                 {vehicle.engineNumber || 'N/A'}
                               </p>
                             </div>
