@@ -261,7 +261,7 @@ const VehicleDetailPage = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [vehicleDetail, setVehicleDetail] = useState(null)
-  const [showRcImageViewer, setShowRcImageViewer] = useState(false)
+  const [documentViewer, setDocumentViewer] = useState({ isOpen: false, url: '', title: '', isPdf: false })
 
   useEffect(() => {
     const fetchVehicleDetail = async () => {
@@ -440,6 +440,15 @@ const VehicleDetailPage = () => {
     await handleShareDocument(rcImageUrl, rcImageIsPdf, 'RC')
   }
 
+  const openDocumentViewer = (url, title, isPdf = false) => {
+    if (!url) return
+    setDocumentViewer({ isOpen: true, url, title, isPdf })
+  }
+
+  const closeDocumentViewer = () => {
+    setDocumentViewer({ isOpen: false, url: '', title: '', isPdf: false })
+  }
+
   return (
     <div className='min-h-screen bg-[radial-gradient(circle_at_top,_#eff6ff,_#f8fafc_45%,_#ffffff_100%)]'>
       <div className='mx-auto max-w-7xl px-4 py-6 lg:px-6 lg:py-8'>
@@ -518,17 +527,16 @@ const VehicleDetailPage = () => {
                 <p className='text-[10px] font-bold uppercase tracking-[0.22em] text-slate-300'>Uploaded RC Document</p>
                 {rcImageUrl && (
                   <div className='flex items-center gap-2'>
-                    <a
-                      href={rcImageUrl}
-                      target='_blank'
-                      rel='noreferrer'
+                    <button
+                      type='button'
+                      onClick={() => openDocumentViewer(rcImageUrl, 'RC Document', rcImageIsPdf)}
                       className='inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-white shadow-sm transition hover:bg-white/30'
-                      title='Open in new tab'
+                      title='Open document'
                     >
                       <svg className='h-4 w-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
                         <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 4v6m0-4l-4 4' />
                       </svg>
-                    </a>
+                    </button>
                     <button
                       type='button'
                       onClick={handleShareRc}
@@ -546,15 +554,14 @@ const VehicleDetailPage = () => {
                   rcImageIsPdf ? (
                     <div className='flex min-h-[80px] flex-col items-center justify-center gap-2 p-4 text-center'>
                       <p className='text-xs font-bold text-white'>RC PDF uploaded</p>
-                      <a href={rcImageUrl} target='_blank' rel='noreferrer' className='inline-flex items-center rounded-full bg-white px-3 py-1.5 text-xs font-bold text-slate-900'>
+                      <button type='button' onClick={() => openDocumentViewer(rcImageUrl, 'RC Document', true)} className='inline-flex items-center rounded-full bg-white px-3 py-1.5 text-xs font-bold text-slate-900'>
                         Open PDF
-                      </a>
+                      </button>
                     </div>
                   ) : (
-                    <a
-                      href={rcImageUrl}
-                      target='_blank'
-                      rel='noreferrer'
+                    <button
+                      type='button'
+                      onClick={() => openDocumentViewer(rcImageUrl, 'RC Document', false)}
                       className='flex items-center justify-center h-20 cursor-pointer'
                     >
                       <img
@@ -562,7 +569,7 @@ const VehicleDetailPage = () => {
                         alt='Uploaded RC document'
                         className='h-full w-auto object-contain bg-white/90'
                       />
-                    </a>
+                    </button>
                   )
                 ) : (
                   <div className='flex min-h-[80px] items-center justify-center p-4 text-center text-xs font-bold text-slate-400'>
@@ -574,12 +581,30 @@ const VehicleDetailPage = () => {
           </div>
         </section>
 
-        <ImageViewer
-          isOpen={showRcImageViewer}
-          onClose={() => setShowRcImageViewer(false)}
-          imageUrl={rcImageUrl}
-          title='RC Document Image'
-        />
+        {documentViewer.isOpen && (
+          documentViewer.isPdf ? (
+            <div className='fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4'>
+              <div className='relative flex h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl'>
+                <div className='flex items-center justify-between border-b border-slate-200 px-4 py-3'>
+                  <p className='text-sm font-bold text-slate-900'>{documentViewer.title}</p>
+                  <button type='button' onClick={closeDocumentViewer} className='inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-900 transition hover:bg-slate-100'>
+                    <svg className='h-4 w-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                      <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M6 18L18 6M6 6l12 12' />
+                    </svg>
+                  </button>
+                </div>
+                <iframe src={documentViewer.url} title={documentViewer.title} className='h-full w-full bg-slate-100' />
+              </div>
+            </div>
+          ) : (
+            <ImageViewer
+              isOpen={documentViewer.isOpen}
+              onClose={closeDocumentViewer}
+              imageUrl={documentViewer.url}
+              title={documentViewer.title}
+            />
+          )
+        )}
 
 <section className='mt-6 overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_24px_70px_-48px_rgba(15,23,42,0.55)]'>
           <div className='flex items-center justify-between border-b border-slate-200 px-5 py-5'>
@@ -613,14 +638,13 @@ const VehicleDetailPage = () => {
                           <span className='text-sm font-bold text-slate-400'>No document</span>
                         ) : row.isPdf ? (
                           <div className='flex items-center gap-2'>
-                            <a
-                              href={row.documentUrl}
-                              target='_blank'
-                              rel='noreferrer'
+                            <button
+                              type='button'
+                              onClick={() => openDocumentViewer(row.documentUrl, `${row.type} Document`, true)}
                               className='inline-flex items-center rounded-full bg-slate-900 px-4 py-2 text-xs font-bold text-white'
                             >
                               Open PDF
-                            </a>
+                            </button>
                             <button
                               type='button'
                               onClick={() => handleShareDocument(row.documentUrl, row.isPdf, row.type)}
@@ -633,9 +657,9 @@ const VehicleDetailPage = () => {
                           </div>
                         ) : (
 <div className='flex items-center gap-2'>
-                            <a href={row.documentUrl} target='_blank' rel='noreferrer' className='block w-fit overflow-hidden rounded-xl border border-slate-200 bg-slate-50'>
+                            <button type='button' onClick={() => openDocumentViewer(row.documentUrl, `${row.type} Document`, false)} className='block w-fit overflow-hidden rounded-xl border border-slate-200 bg-slate-50'>
                               <img src={row.documentUrl} alt={`${row.type} document`} className='h-8 w-auto max-w-[80px] object-contain' />
-                            </a>
+                            </button>
                             <button
                               type='button'
                               onClick={() => handleShareDocument(row.documentUrl, row.isPdf, row.type)}
