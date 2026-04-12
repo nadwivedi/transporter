@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import axios from 'axios'
+import { Share } from 'lucide-react'
+import { toast } from 'react-toastify'
+import ImageViewer from '../../components/ImageViewer'
 import { getVehicleNumberParts } from '../../utils/vehicleNoCheck'
 import { getDaysRemaining } from '../../utils/dateHelpers'
 import { getTheme, getVehicleNumberDesign } from '../../context/ThemeContext'
@@ -258,6 +261,7 @@ const VehicleDetailPage = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [vehicleDetail, setVehicleDetail] = useState(null)
+  const [showRcImageViewer, setShowRcImageViewer] = useState(false)
 
   useEffect(() => {
     const fetchVehicleDetail = async () => {
@@ -381,6 +385,54 @@ const VehicleDetailPage = () => {
   const vehicleNumber = vehicle.registrationNumber || vehicle.vehicleNumber || 'N/A'
   const rcImageUrl = getDocumentUrl(vehicle.rcImage)
   const rcImageIsPdf = rcImageUrl && (rcImageUrl.toLowerCase().includes('.pdf') || rcImageUrl.startsWith('data:application/pdf'))
+  const handleShareRc = async () => {
+    if (!rcImageUrl) {
+      toast.error('No RC document available to share.', { position: 'top-right', autoClose: 2500 })
+      return
+    }
+
+    try {
+      if (navigator.share) {
+        if (rcImageUrl.startsWith('data:')) {
+          const response = await fetch(rcImageUrl)
+          const blob = await response.blob()
+          const extension = rcImageIsPdf ? 'pdf' : 'jpg'
+          const mimeType = rcImageIsPdf ? 'application/pdf' : (blob.type || 'image/jpeg')
+          const shareFile = new File([blob], `${vehicleNumber.replace(/\s+/g, '-')}-rc.${extension}`, { type: mimeType })
+
+          if (navigator.canShare && navigator.canShare({ files: [shareFile] })) {
+            await navigator.share({
+              title: `${vehicleNumber} RC Document`,
+              text: `RC document for vehicle ${vehicleNumber}`,
+              files: [shareFile],
+            })
+            return
+          }
+        } else {
+          await navigator.share({
+            title: `${vehicleNumber} RC Document`,
+            text: `RC document for vehicle ${vehicleNumber}`,
+            url: rcImageUrl,
+          })
+          return
+        }
+      }
+
+      if (!rcImageUrl.startsWith('data:')) {
+        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(`RC document for vehicle ${vehicleNumber}\n${rcImageUrl}`)}`
+        window.open(whatsappUrl, '_blank', 'noopener,noreferrer')
+        return
+      }
+
+      toast.info('Direct sharing for this RC file works on browsers that support the native share option.', {
+        position: 'top-right',
+        autoClose: 3500,
+      })
+    } catch (error) {
+      console.error('Error sharing RC document:', error)
+      toast.error('Failed to share RC document.', { position: 'top-right', autoClose: 2500 })
+    }
+  }
 
   return (
     <div className='min-h-screen bg-[radial-gradient(circle_at_top,_#eff6ff,_#f8fafc_45%,_#ffffff_100%)]'>
@@ -418,7 +470,12 @@ const VehicleDetailPage = () => {
                       </a>
                     </div>
                   ) : (
-                    <img src={rcImageUrl} alt='Uploaded RC document' className='h-[320px] w-full object-contain bg-white/90' />
+                    <img
+                      src={rcImageUrl}
+                      alt='Uploaded RC document'
+                      onClick={() => setShowRcImageViewer(true)}
+                      className='h-[320px] w-full cursor-pointer object-contain bg-white/90'
+                    />
                   )
                 ) : (
                   <div className='flex min-h-[260px] items-center justify-center p-5 text-center text-sm font-semibold text-slate-300'>
@@ -426,6 +483,17 @@ const VehicleDetailPage = () => {
                   </div>
                 )}
               </div>
+              {rcImageUrl && (
+                <button
+                  type='button'
+                  onClick={handleShareRc}
+                  className='mt-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white text-slate-900 shadow-sm transition hover:bg-slate-100'
+                  title='Share RC'
+                  aria-label='Share RC'
+                >
+                  <Share className='h-5 w-5' />
+                </button>
+              )}
             </div>
           </div>
 
@@ -440,6 +508,13 @@ const VehicleDetailPage = () => {
             </div>
           </div>
         </section>
+
+        <ImageViewer
+          isOpen={showRcImageViewer}
+          onClose={() => setShowRcImageViewer(false)}
+          imageUrl={rcImageUrl}
+          title='RC Document Image'
+        />
 
         <section className='mt-6 overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_24px_70px_-48px_rgba(15,23,42,0.55)]'>
           <div className='border-b border-slate-200 px-5 py-5'>
