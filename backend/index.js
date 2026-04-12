@@ -7,6 +7,8 @@ const taxRoutes = require('./routes/taxRoutes')
 const pucRoutes = require('./routes/pucRoutes')
 const gpsRoutes = require('./routes/gpsRoutes')
 const insuranceRoutes = require('./routes/insuranceRoutes')
+const authRoutes = require('./routes/authRoutes')
+const userRoutes = require('./routes/userRoutes')
 const ocrRoutes = require('./routes/ocrRoutes')
 const uploadRoutes = require('./routes/uploadRoutes')
 
@@ -36,6 +38,8 @@ app.get('/api/health', (_req, res) => {
   res.json({ success: true, message: 'Backend is running' })
 })
 
+app.use('/api/auth', authRoutes)
+app.use('/api/users', userRoutes)
 app.use('/api/vehicle', vehicleRoutes)
 app.use('/api/fitness', fitnessRoutes)
 app.use('/api/tax', taxRoutes)

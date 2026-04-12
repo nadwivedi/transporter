@@ -24,11 +24,7 @@ const adminSchema = new mongoose.Schema({
 
 // Method to compare password
 adminSchema.methods.comparePassword = async function(candidatePassword) {
-  try {
-    return await bcrypt.compare(candidatePassword, this.password)
-  } catch (error) {
-    throw error
-  }
+  return bcrypt.compare(candidatePassword, this.password)
 }
 
 module.exports = mongoose.model('Admin', adminSchema)

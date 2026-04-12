@@ -4,6 +4,7 @@ import 'react-toastify/dist/ReactToastify.css'
 import { AuthProvider } from './context/AuthContext'
 import { ThemeProvider } from './context/ThemeContext'
 import Navbar from './components/Navbar'
+import ProtectedRoute from './components/ProtectedRoute'
 import Home from './pages/Home'
 import Dashboard from './pages/Dashboard'
 import Login from './pages/Login'
@@ -26,17 +27,17 @@ function AppContent() {
       {showNavbar && <Navbar />}
       <div className={showNavbar ? 'pt-12' : ''}>
         <Routes>
-          <Route path='/' element={<Home />} />
-          <Route path='/dashboard' element={<Dashboard />} />
           <Route path='/login' element={<Login />} />
-          <Route path='/setting' element={<Setting />} />
-          <Route path='/vehicle' element={<VehicleRegistration />} />
-          <Route path='/vehicle/:id/detail' element={<VehicleDetailPage />} />
-          <Route path='/insurance' element={<Insurance />} />
-          <Route path='/fitness' element={<Fitness />} />
-          <Route path='/tax' element={<Tax />} />
-          <Route path='/puc' element={<Puc />} />
-          <Route path='/gps' element={<Gps />} />
+          <Route path='/' element={<ProtectedRoute><Home /></ProtectedRoute>} />
+          <Route path='/dashboard' element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path='/setting' element={<ProtectedRoute><Setting /></ProtectedRoute>} />
+          <Route path='/vehicle' element={<ProtectedRoute><VehicleRegistration /></ProtectedRoute>} />
+          <Route path='/vehicle/:id/detail' element={<ProtectedRoute><VehicleDetailPage /></ProtectedRoute>} />
+          <Route path='/insurance' element={<ProtectedRoute><Insurance /></ProtectedRoute>} />
+          <Route path='/fitness' element={<ProtectedRoute><Fitness /></ProtectedRoute>} />
+          <Route path='/tax' element={<ProtectedRoute><Tax /></ProtectedRoute>} />
+          <Route path='/puc' element={<ProtectedRoute><Puc /></ProtectedRoute>} />
+          <Route path='/gps' element={<ProtectedRoute><Gps /></ProtectedRoute>} />
         </Routes>
       </div>
     </>

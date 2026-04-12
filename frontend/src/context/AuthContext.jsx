@@ -23,7 +23,7 @@ export const AuthProvider = ({ children }) => {
   const checkAuth = async () => {
     try {
       // Skip auth check if on login page
-      if (window.location.pathname === '/login') {
+      if (window.location.pathname === '/login' || window.location.pathname.startsWith('/admin')) {
         setLoading(false)
         return
       }

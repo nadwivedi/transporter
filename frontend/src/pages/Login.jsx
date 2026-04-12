@@ -35,7 +35,7 @@ const Login = () => {
     setError('')
 
     if (!formData.identifier || !formData.password) {
-      setError('Please enter email/mobile and password')
+      setError('Please enter mobile number and password')
       return
     }
 
@@ -116,7 +116,7 @@ const Login = () => {
           <form onSubmit={handleSubmit} className='space-y-6'>
             <div>
               <label className='block text-sm font-bold text-gray-700 mb-2'>
-                Email or Mobile Number
+                Mobile Number
               </label>
               <div className='relative'>
                 <div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
@@ -129,12 +129,12 @@ const Login = () => {
                   name='identifier'
                   value={formData.identifier}
                   onChange={handleChange}
-                  placeholder='Enter email or mobile number'
+                  placeholder='Enter mobile number'
                   className='w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm'
                   disabled={loading}
                 />
               </div>
-              <p className='mt-1 text-xs text-gray-500'>Use your registered email or 10-digit mobile number</p>
+              <p className='mt-1 text-xs text-gray-500'>Use your 10-digit mobile number</p>
             </div>
 
             <div>
