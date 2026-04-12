@@ -1,7 +1,10 @@
 const express = require('express')
 const controller = require('../controllers/taxController')
+const { requireAuth } = require('../middleware/auth')
 
 const router = express.Router()
+
+router.use(requireAuth)
 
 router.get('/statistics', controller.getStatistics)
 router.get('/expiring-soon', controller.getExpiringSoon)

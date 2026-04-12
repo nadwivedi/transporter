@@ -169,6 +169,26 @@ const getDocumentUrl = (value) => {
   return `${API_URL}${value}`
 }
 
+const parseDisplayDate = (value) => {
+  if (!value || typeof value !== 'string') return null
+
+  const trimmed = value.trim()
+  if (!trimmed) return null
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    const [year, month, day] = trimmed.split('-').map(Number)
+    const date = new Date(year, month - 1, day)
+    return Number.isNaN(date.getTime()) ? null : date
+  }
+
+  const parts = trimmed.split(/[/-]/)
+  if (parts.length !== 3) return null
+
+  const [day, month, year] = parts.map(Number)
+  const date = new Date(year, month - 1, day)
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
 const getStatusPill = (status) => {
   if (status === 'active') {
     return { label: 'Active', className: 'bg-emerald-100 text-emerald-700 border-emerald-200' }
@@ -353,6 +373,13 @@ const VehicleDetailPage = () => {
       { key: 'insurance', label: 'Insurance', dateFromKey: 'validFrom', dateToKey: 'validTo', documentKey: 'insuranceDocument' },
     ]
 
+    const statusOrder = {
+      active: 0,
+      expiring_soon: 1,
+      expired: 2,
+      unknown: 3,
+    }
+
     return documentConfigs.flatMap(({ key, label, dateFromKey, dateToKey, documentKey }) =>
       (records[key] || [])
         .map((record, index) => {
@@ -372,7 +399,18 @@ const VehicleDetailPage = () => {
             hasDocument: Boolean(documentUrl),
           }
         })
-    )
+    ).sort((a, b) => {
+      const statusDiff = (statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99)
+      if (statusDiff !== 0) return statusDiff
+
+      const aDate = parseDisplayDate(a.validTo)
+      const bDate = parseDisplayDate(b.validTo)
+      const aTime = aDate ? aDate.getTime() : 0
+      const bTime = bDate ? bDate.getTime() : 0
+
+      // Within each status bucket, keep the latest expiry at the top.
+      return bTime - aTime
+    })
   }, [records])
 
   if (loading) {

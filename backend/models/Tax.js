@@ -17,8 +17,7 @@ const taxSchema = new mongoose.Schema({
     ref: 'VehicleRegistration',
     required: true,
     uppercase: true,
-    trim: true,
-    index: true
+    trim: true
   },
   ownerName: {
     type: String,
@@ -70,7 +69,15 @@ const taxSchema = new mongoose.Schema({
   },
   lastWhatsappSentAt: {
     type: Date
-  }
+  },
+  lastWhatsappReminderFor: {
+    type: String,
+    trim: true
+  },
+  whatsappReminderStages: [{
+    type: String,
+    trim: true
+  }]
 }, {
   timestamps: true
 })

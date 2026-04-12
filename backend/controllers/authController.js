@@ -5,7 +5,6 @@ const sanitizeUser = (user) => ({
   _id: user._id,
   name: user.name || '',
   mobile: user.mobile || '',
-  mobile1: user.mobile || '',
   isActive: user.isActive !== false,
   lastLogin: user.lastLogin || null,
   createdAt: user.createdAt,

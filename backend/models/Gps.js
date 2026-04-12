@@ -60,7 +60,15 @@ const gpsSchema = new mongoose.Schema({
   },
   lastWhatsappSentAt: {
     type: Date
-  }
+  },
+  lastWhatsappReminderFor: {
+    type: String,
+    trim: true
+  },
+  whatsappReminderStages: [{
+    type: String,
+    trim: true
+  }]
 }, {
   timestamps: true
 })

@@ -127,6 +127,13 @@
   min-height: 220px;
 }
 
+.section-text {
+  margin: 8px 0 0;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 600;
+}
+
 .panel-header {
   padding: 22px 24px 8px;
 }
@@ -336,6 +343,79 @@ td {
   border-color: #fecaca;
 }
 
+.status-pending {
+  background: #fef3c7;
+  color: #b45309;
+  border-color: #fde68a;
+}
+
+.whatsapp-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+  gap: 20px;
+  padding: 8px 24px 24px;
+}
+
+.whatsapp-card {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+  padding: 20px;
+  border-radius: 24px;
+  border: 1px solid #d9e1ea;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.whatsapp-card-header {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.qr-panel {
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+}
+
+.qr-image {
+  width: min(100%, 280px);
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+  padding: 12px;
+  border-radius: 22px;
+  background: #fff;
+  border: 1px solid #d9e1ea;
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.detail-item {
+  display: grid;
+  gap: 6px;
+  padding: 16px;
+  border-radius: 18px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+}
+
+.detail-item span {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.detail-item strong {
+  color: #0f172a;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -382,6 +462,26 @@ td {
   gap: 10px;
 }
 
+.table-btn {
+  padding: 8px 12px;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid #d9e1ea;
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: #f8fbff;
+}
+
+.toggle-row input {
+  width: 18px;
+  height: 18px;
+}
+
 @media (max-width: 960px) {
   .admin-shell {
     grid-template-columns: 1fr;
@@ -393,6 +493,14 @@ td {
   }
 
   .panel-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .whatsapp-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .details-grid {
     grid-template-columns: 1fr;
   }
 

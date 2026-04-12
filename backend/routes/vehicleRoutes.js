@@ -1,4 +1,5 @@
 const express = require('express')
+const { requireAuth } = require('../middleware/auth')
 const {
   getVehicles,
   getVehicleStatistics,
@@ -11,6 +12,8 @@ const {
 } = require('../controllers/vehicleController')
 
 const router = express.Router()
+
+router.use(requireAuth)
 
 router.get('/', getVehicles)
 router.get('/statistics', getVehicleStatistics)

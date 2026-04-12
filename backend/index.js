@@ -11,6 +11,9 @@ const authRoutes = require('./routes/authRoutes')
 const userRoutes = require('./routes/userRoutes')
 const ocrRoutes = require('./routes/ocrRoutes')
 const uploadRoutes = require('./routes/uploadRoutes')
+const whatsAppRoutes = require('./routes/whatsAppRoutes')
+const whatsAppSessionManager = require('./services/whatsAppSessionManager')
+const expiryReminderService = require('./services/expiryReminderService')
 
 const app = express()
 const PORT = process.env.PORT || 5000
@@ -48,6 +51,7 @@ app.use('/api/gps', gpsRoutes)
 app.use('/api/insurance', insuranceRoutes)
 app.use('/api/ocr', ocrRoutes)
 app.use('/api/upload', uploadRoutes)
+app.use('/api/whatsapp', whatsAppRoutes)
 
 mongoose
   .connect(MONGODB_URI)
@@ -56,6 +60,12 @@ mongoose
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`)
     })
+
+    whatsAppSessionManager.restoreSession().catch((error) => {
+      console.error('Failed to restore WhatsApp session:', error)
+    })
+
+    expiryReminderService.start()
   })
   .catch((error) => {
     console.error('MongoDB connection failed:', error)

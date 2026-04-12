@@ -126,7 +126,10 @@ const getVehicles = async (req, res) => {
     const page = Math.max(Number(req.query.page) || 1, 1)
     const limit = Math.max(Number(req.query.limit) || 20, 1)
     const search = req.query.search || ''
-    const filter = buildSearchFilter(search)
+    const filter = {
+      userId: req.user._id,
+      ...buildSearchFilter(search),
+    }
 
     const totalRecords = await Vehicle.countDocuments(filter)
     const data = await Vehicle.find(filter)
@@ -151,9 +154,9 @@ const getVehicles = async (req, res) => {
   }
 }
 
-const getVehicleStatistics = async (_req, res) => {
+const getVehicleStatistics = async (req, res) => {
   try {
-    const total = await Vehicle.countDocuments()
+    const total = await Vehicle.countDocuments({ userId: req.user._id })
     res.json({ success: true, data: { total } })
   } catch (error) {
     console.error('Error fetching vehicle statistics:', error)
@@ -163,7 +166,7 @@ const getVehicleStatistics = async (_req, res) => {
 
 const getVehicleDetail = async (req, res) => {
   try {
-    const vehicle = await Vehicle.findById(req.params.id).lean()
+    const vehicle = await Vehicle.findOne({ _id: req.params.id, userId: req.user._id }).lean()
 
     if (!vehicle) {
       return res.status(404).json({ success: false, message: 'Vehicle not found' })
@@ -172,11 +175,11 @@ const getVehicleDetail = async (req, res) => {
     const vehicleNumber = (vehicle.registrationNumber || vehicle.vehicleNumber || '').trim().toUpperCase()
 
     const [fitnessRecords, taxRecords, pucRecords, insuranceRecords, gpsRecords] = await Promise.all([
-      Fitness.find({ vehicleNumber }).sort({ createdAt: -1 }).lean(),
-      Tax.find({ vehicleNumber }).sort({ createdAt: -1 }).lean(),
-      Puc.find({ vehicleNumber }).sort({ createdAt: -1 }).lean(),
-      Insurance.find({ vehicleNumber }).sort({ createdAt: -1 }).lean(),
-      Gps.find({ vehicleNumber }).sort({ createdAt: -1 }).lean(),
+      Fitness.find({ vehicleNumber, userId: req.user._id }).sort({ createdAt: -1 }).lean(),
+      Tax.find({ vehicleNumber, userId: req.user._id }).sort({ createdAt: -1 }).lean(),
+      Puc.find({ vehicleNumber, userId: req.user._id }).sort({ createdAt: -1 }).lean(),
+      Insurance.find({ vehicleNumber, userId: req.user._id }).sort({ createdAt: -1 }).lean(),
+      Gps.find({ vehicleNumber, userId: req.user._id }).sort({ createdAt: -1 }).lean(),
     ])
 
     const fitnessWithStatus = mapRecordsWithStatus(fitnessRecords, 'validTo')
@@ -227,7 +230,7 @@ const searchVehicle = async (req, res) => {
     }
 
     const regex = new RegExp(searchInput, 'i')
-    const data = await Vehicle.find({ registrationNumber: regex }).sort({ createdAt: -1 }).limit(10).lean()
+    const data = await Vehicle.find({ userId: req.user._id, registrationNumber: regex }).sort({ createdAt: -1 }).limit(10).lean()
 
     if (!data.length) {
       return res.status(404).json({ success: false, message: 'No vehicles found matching the search' })
@@ -247,7 +250,7 @@ const searchVehicle = async (req, res) => {
 const checkVehicleExists = async (req, res) => {
   try {
     const regNumber = (req.params.regNumber || '').trim().toUpperCase()
-    const existingVehicle = await Vehicle.findOne({ registrationNumber: regNumber }).lean()
+    const existingVehicle = await Vehicle.findOne({ userId: req.user._id, registrationNumber: regNumber }).lean()
 
     res.json({
       success: true,
@@ -264,7 +267,7 @@ const createVehicle = async (req, res) => {
   try {
     const payload = normalizeVehiclePayload({
       ...req.body,
-      userId: req.body.userId || '000000000000000000000001',
+      userId: req.user._id,
     })
 
     if (!payload.registrationNumber || !payload.chassisNumber) {
@@ -288,8 +291,8 @@ const updateVehicle = async (req, res) => {
       ...req.body,
     })
 
-    const vehicle = await Vehicle.findByIdAndUpdate(req.params.id, payload, {
-      new: true,
+    const vehicle = await Vehicle.findOneAndUpdate({ _id: req.params.id, userId: req.user._id }, payload, {
+      returnDocument: 'after',
       runValidators: true,
     }).lean()
 
@@ -306,7 +309,7 @@ const updateVehicle = async (req, res) => {
 
 const deleteVehicle = async (req, res) => {
   try {
-    const vehicle = await Vehicle.findByIdAndDelete(req.params.id).lean()
+    const vehicle = await Vehicle.findOneAndDelete({ _id: req.params.id, userId: req.user._id }).lean()
 
     if (!vehicle) {
       return res.status(404).json({ success: false, message: 'Vehicle not found' })

@@ -1,4 +1,4 @@
-const DEFAULT_USER_ID = '000000000000000000000001'
+const expiryReminderService = require('../services/expiryReminderService')
 
 const parseDateString = (dateStr) => {
   if (!dateStr || typeof dateStr !== 'string') return null
@@ -43,7 +43,7 @@ const normalizeNumber = (value, fallback = 0) => {
   return Number.isFinite(parsed) ? parsed : fallback
 }
 
-const buildPayload = (body, config, isCreate = false) => {
+const buildPayload = (body, config, userId, isCreate = false) => {
   const payload = {}
 
   config.stringFields.forEach((field) => {
@@ -81,7 +81,7 @@ const buildPayload = (body, config, isCreate = false) => {
   }
 
   if (isCreate) {
-    payload.userId = body.userId || DEFAULT_USER_ID
+    payload.userId = userId
   }
 
   return payload
@@ -103,7 +103,7 @@ const createRecordController = (config) => {
       const limit = Math.max(Number(req.query.limit) || 20, 1)
       const matcher = buildSearchMatcher(searchFields, req.query.search || '')
 
-      const rawRecords = await Model.find({}).sort({ createdAt: -1 }).lean()
+      const rawRecords = await Model.find({ userId: req.user._id }).sort({ createdAt: -1 }).lean()
 
       const enriched = rawRecords
         .map((record) => ({
@@ -142,9 +142,9 @@ const createRecordController = (config) => {
   const getExpired = async (req, res) => listRecords(req, res, 'expired')
   const getPendingPayment = async (req, res) => listRecords(req, res, 'pending')
 
-  const getStatistics = async (_req, res) => {
+  const getStatistics = async (req, res) => {
     try {
-      const records = await Model.find({}).lean()
+      const records = await Model.find({ userId: req.user._id }).lean()
       const totals = records.reduce((acc, record) => {
         const status = calculateStatus(record, expiryField, expiringDays)
         const balance = normalizeNumber(record[balanceField], 0)
@@ -175,7 +175,7 @@ const createRecordController = (config) => {
 
   const create = async (req, res) => {
     try {
-      const payload = buildPayload(req.body, config, true)
+      const payload = buildPayload(req.body, config, req.user._id, true)
       if (!payload.vehicleNumber || !payload[config.requiredDateField]) {
         return res.status(400).json({ success: false, message: `vehicleNumber and ${config.requiredDateField} are required` })
       }
@@ -185,6 +185,9 @@ const createRecordController = (config) => {
       }
 
       const record = await Model.create(payload)
+      expiryReminderService.runOnce().catch((error) => {
+        console.error(`Post-create ${config.name} reminder run failed:`, error.message)
+      })
       res.status(201).json({ success: true, data: record })
     } catch (error) {
       console.error(`Error creating ${config.name} record:`, error)
@@ -194,9 +197,9 @@ const createRecordController = (config) => {
 
   const update = async (req, res) => {
     try {
-      const payload = buildPayload(req.body, config, false)
-      const record = await Model.findByIdAndUpdate(req.params.id, payload, {
-        new: true,
+      const payload = buildPayload(req.body, config, req.user._id, false)
+      const record = await Model.findOneAndUpdate({ _id: req.params.id, userId: req.user._id }, payload, {
+        returnDocument: 'after',
         runValidators: true,
       }).lean()
 
@@ -204,6 +207,9 @@ const createRecordController = (config) => {
         return res.status(404).json({ success: false, message: `${config.label} record not found` })
       }
 
+      expiryReminderService.runOnce().catch((error) => {
+        console.error(`Post-update ${config.name} reminder run failed:`, error.message)
+      })
       res.json({ success: true, data: record })
     } catch (error) {
       console.error(`Error updating ${config.name} record:`, error)
@@ -213,7 +219,7 @@ const createRecordController = (config) => {
 
   const remove = async (req, res) => {
     try {
-      const record = await Model.findByIdAndDelete(req.params.id).lean()
+      const record = await Model.findOneAndDelete({ _id: req.params.id, userId: req.user._id }).lean()
       if (!record) {
         return res.status(404).json({ success: false, message: `${config.label} record not found` })
       }
@@ -227,7 +233,7 @@ const createRecordController = (config) => {
 
   const markAsPaid = async (req, res) => {
     try {
-      const record = await Model.findById(req.params.id)
+      const record = await Model.findOne({ _id: req.params.id, userId: req.user._id })
       if (!record) {
         return res.status(404).json({ success: false, message: `${config.label} record not found` })
       }
@@ -246,7 +252,7 @@ const createRecordController = (config) => {
 
   const incrementWhatsapp = async (req, res) => {
     try {
-      const record = await Model.findById(req.params.id)
+      const record = await Model.findOne({ _id: req.params.id, userId: req.user._id })
       if (!record) {
         return res.status(404).json({ success: false, message: `${config.label} record not found` })
       }
