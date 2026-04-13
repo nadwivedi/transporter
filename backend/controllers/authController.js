@@ -1,5 +1,12 @@
 const User = require('../models/User')
-const { signToken, buildAuthCookie, buildClearAuthCookie } = require('../utils/authToken')
+const Admin = require('../models/Admin')
+const {
+  signToken,
+  buildAuthCookie,
+  buildAdminAuthCookie,
+  buildClearAuthCookie,
+  buildClearAdminAuthCookie,
+} = require('../utils/authToken')
 
 const sanitizeUser = (user) => ({
   _id: user._id,
@@ -9,6 +16,14 @@ const sanitizeUser = (user) => ({
   lastLogin: user.lastLogin || null,
   createdAt: user.createdAt,
   updatedAt: user.updatedAt,
+})
+
+const sanitizeAdmin = (admin) => ({
+  _id: admin._id,
+  email: admin.email || '',
+  lastLogin: admin.lastLogin || null,
+  createdAt: admin.createdAt,
+  updatedAt: admin.updatedAt,
 })
 
 const login = async (req, res) => {
@@ -58,13 +73,67 @@ const profile = async (req, res) => {
   })
 }
 
+const adminLogin = async (req, res) => {
+  try {
+    const email = String(req.body.email || '').trim().toLowerCase()
+    const password = String(req.body.password || '')
+
+    if (!email || !password) {
+      return res.status(400).json({ success: false, message: 'Email and password are required' })
+    }
+
+    const admin = await Admin.findOne({ email })
+    if (!admin) {
+      return res.status(401).json({ success: false, message: 'Invalid credentials' })
+    }
+
+    const isValidPassword = await admin.comparePassword(password)
+    if (!isValidPassword) {
+      return res.status(401).json({ success: false, message: 'Invalid credentials' })
+    }
+
+    admin.lastLogin = new Date()
+    await admin.save()
+
+    const token = signToken({ adminId: String(admin._id), type: 'admin' })
+    res.setHeader('Set-Cookie', buildAdminAuthCookie(token))
+
+    res.json({
+      success: true,
+      data: {
+        admin: sanitizeAdmin(admin),
+      },
+    })
+  } catch (error) {
+    console.error('Admin login error:', error)
+    res.status(500).json({ success: false, message: 'Failed to login' })
+  }
+}
+
+const adminProfile = async (req, res) => {
+  res.json({
+    success: true,
+    data: {
+      admin: sanitizeAdmin(req.admin),
+    },
+  })
+}
+
 const logout = async (_req, res) => {
   res.setHeader('Set-Cookie', buildClearAuthCookie())
+  res.json({ success: true, message: 'Logged out successfully' })
+}
+
+const adminLogout = async (_req, res) => {
+  res.setHeader('Set-Cookie', buildClearAdminAuthCookie())
   res.json({ success: true, message: 'Logged out successfully' })
 }
 
 module.exports = {
   login,
   profile,
+  adminLogin,
+  adminProfile,
   logout,
+  adminLogout,
 }

@@ -1,6 +1,7 @@
 const crypto = require('crypto')
 
 const COOKIE_NAME = 'transport_auth'
+const ADMIN_COOKIE_NAME = 'transport_admin_auth'
 
 const getSecret = () => process.env.AUTH_SECRET || 'transport-dev-secret'
 
@@ -42,23 +43,34 @@ const parseCookies = (cookieHeader = '') =>
       return acc
     }, {})
 
-const getAuthPayloadFromRequest = (req) => {
+const getAuthPayloadFromRequest = (req, cookieName = COOKIE_NAME) => {
   const cookies = parseCookies(req.headers.cookie || '')
-  return verifyToken(cookies[COOKIE_NAME])
+  return verifyToken(cookies[cookieName])
 }
 
-const buildAuthCookie = (token) =>
-  `${COOKIE_NAME}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}`
+const buildCookie = (cookieName, token) =>
+  `${cookieName}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}`
 
-const buildClearAuthCookie = () =>
-  `${COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`
+const buildClearCookie = (cookieName) =>
+  `${cookieName}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`
+
+const buildAuthCookie = (token) => buildCookie(COOKIE_NAME, token)
+const buildAdminAuthCookie = (token) => buildCookie(ADMIN_COOKIE_NAME, token)
+
+const buildClearAuthCookie = () => buildClearCookie(COOKIE_NAME)
+const buildClearAdminAuthCookie = () => buildClearCookie(ADMIN_COOKIE_NAME)
 
 module.exports = {
   COOKIE_NAME,
+  ADMIN_COOKIE_NAME,
   signToken,
   verifyToken,
   parseCookies,
   getAuthPayloadFromRequest,
+  buildCookie,
+  buildClearCookie,
   buildAuthCookie,
+  buildAdminAuthCookie,
   buildClearAuthCookie,
+  buildClearAdminAuthCookie,
 }
