@@ -5,6 +5,13 @@ const ADMIN_COOKIE_NAME = 'transport_admin_auth'
 
 const getSecret = () => process.env.AUTH_SECRET || 'transport-dev-secret'
 const isProduction = () => process.env.NODE_ENV === 'production'
+const getCookieDomain = (cookieName) => {
+  if (cookieName === ADMIN_COOKIE_NAME && process.env.ADMIN_COOKIE_DOMAIN) {
+    return process.env.ADMIN_COOKIE_DOMAIN
+  }
+
+  return process.env.COOKIE_DOMAIN || ''
+}
 
 const base64UrlEncode = (value) => Buffer.from(value).toString('base64url')
 const base64UrlDecode = (value) => Buffer.from(value, 'base64url').toString('utf8')
@@ -49,8 +56,9 @@ const getAuthPayloadFromRequest = (req, cookieName = COOKIE_NAME) => {
   return verifyToken(cookies[cookieName])
 }
 
-const buildCookieAttributes = (maxAge) => {
+const buildCookieAttributes = (maxAge, cookieName) => {
   const attributes = ['Path=/', 'HttpOnly', `Max-Age=${maxAge}`]
+  const cookieDomain = getCookieDomain(cookieName)
 
   if (isProduction()) {
     attributes.push('SameSite=None', 'Secure')
@@ -58,14 +66,18 @@ const buildCookieAttributes = (maxAge) => {
     attributes.push('SameSite=Lax')
   }
 
+  if (cookieDomain) {
+    attributes.push(`Domain=${cookieDomain}`)
+  }
+
   return attributes.join('; ')
 }
 
 const buildCookie = (cookieName, token) =>
-  `${cookieName}=${encodeURIComponent(token)}; ${buildCookieAttributes(7 * 24 * 60 * 60)}`
+  `${cookieName}=${encodeURIComponent(token)}; ${buildCookieAttributes(7 * 24 * 60 * 60, cookieName)}`
 
 const buildClearCookie = (cookieName) =>
-  `${cookieName}=; ${buildCookieAttributes(0)}`
+  `${cookieName}=; ${buildCookieAttributes(0, cookieName)}`
 
 const buildAuthCookie = (token) => buildCookie(COOKIE_NAME, token)
 const buildAdminAuthCookie = (token) => buildCookie(ADMIN_COOKIE_NAME, token)

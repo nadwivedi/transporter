@@ -285,13 +285,18 @@ function AppSecure() {
         body: JSON.stringify(loginForm),
       })
 
-      setLoginState({
-        checking: false,
-        submitting: false,
-        authenticated: true,
-        admin: result.data?.admin || null,
-        error: '',
-      })
+      if (!result.data?.admin) {
+        await checkAdminAuth()
+      } else {
+        setLoginState({
+          checking: true,
+          submitting: false,
+          authenticated: false,
+          admin: null,
+          error: '',
+        })
+        await checkAdminAuth()
+      }
       setLoginForm(initialLoginForm)
     } catch (error) {
       console.error('Admin login error:', error)

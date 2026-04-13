@@ -1,6 +1,6 @@
 const express = require('express')
 const controller = require('../controllers/whatsAppController')
-const { requireAdminAuth } = require('../middleware/auth')
+const { requireAdminAuth } = require('../middleware/adminAuth')
 
 const router = express.Router()
 
