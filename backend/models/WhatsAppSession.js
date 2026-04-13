@@ -8,6 +8,11 @@ const whatsAppSessionSchema = new mongoose.Schema(
       unique: true,
       default: 'primary',
     },
+    displayName: {
+      type: String,
+      default: 'Primary Session',
+      trim: true,
+    },
     status: {
       type: String,
       enum: ['new', 'initializing', 'qr_ready', 'authenticated', 'disconnected', 'auth_failure'],

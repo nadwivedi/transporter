@@ -251,7 +251,9 @@ class ExpiryReminderService {
   }
 
   async runOnce() {
-    if (this.running || !whatsAppSessionManager.hasClient()) {
+    const activeSession = await whatsAppSessionManager.getActiveSession()
+
+    if (this.running || !activeSession || !whatsAppSessionManager.hasClient(activeSession.sessionKey)) {
       return { skipped: true }
     }
 

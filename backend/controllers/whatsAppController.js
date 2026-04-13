@@ -3,17 +3,30 @@ const expiryReminderService = require('../services/expiryReminderService')
 
 const getStatus = async (_req, res) => {
   try {
-    const session = await whatsAppSessionManager.getSession()
-    res.json({ success: true, data: session })
+    const status = await whatsAppSessionManager.getStatus()
+    res.json({ success: true, data: status })
   } catch (error) {
     console.error('Failed to get WhatsApp status:', error)
     res.status(500).json({ success: false, message: 'Failed to fetch WhatsApp status' })
   }
 }
 
-const startSession = async (_req, res) => {
+const createSession = async (req, res) => {
   try {
-    const session = await whatsAppSessionManager.startSession()
+    const session = await whatsAppSessionManager.createSession({
+      sessionKey: req.body?.sessionKey,
+      displayName: req.body?.displayName,
+    })
+    res.json({ success: true, data: session })
+  } catch (error) {
+    console.error('Failed to create WhatsApp session:', error)
+    res.status(400).json({ success: false, message: error.message || 'Failed to create WhatsApp session' })
+  }
+}
+
+const startSession = async (req, res) => {
+  try {
+    const session = await whatsAppSessionManager.startSession(req.params.sessionKey)
     res.json({ success: true, data: session })
   } catch (error) {
     console.error('Failed to start WhatsApp session:', error)
@@ -21,9 +34,9 @@ const startSession = async (_req, res) => {
   }
 }
 
-const stopSession = async (_req, res) => {
+const stopSession = async (req, res) => {
   try {
-    const session = await whatsAppSessionManager.stopSession()
+    const session = await whatsAppSessionManager.stopSession(req.params.sessionKey)
     res.json({ success: true, data: session })
   } catch (error) {
     console.error('Failed to stop WhatsApp session:', error)
@@ -31,13 +44,23 @@ const stopSession = async (_req, res) => {
   }
 }
 
-const resetSession = async (_req, res) => {
+const resetSession = async (req, res) => {
   try {
-    const session = await whatsAppSessionManager.resetSession()
+    const session = await whatsAppSessionManager.resetSession(req.params.sessionKey)
     res.json({ success: true, data: session })
   } catch (error) {
     console.error('Failed to reset WhatsApp session:', error)
     res.status(500).json({ success: false, message: error.message || 'Failed to reset WhatsApp session' })
+  }
+}
+
+const setActiveSession = async (req, res) => {
+  try {
+    const session = await whatsAppSessionManager.setActiveSession(req.params.sessionKey)
+    res.json({ success: true, data: session })
+  } catch (error) {
+    console.error('Failed to set active WhatsApp session:', error)
+    res.status(400).json({ success: false, message: error.message || 'Failed to set active WhatsApp session' })
   }
 }
 
@@ -64,9 +87,11 @@ const getReminderLogs = async (req, res) => {
 
 module.exports = {
   getStatus,
+  createSession,
   startSession,
   stopSession,
   resetSession,
+  setActiveSession,
   runReminders,
   getReminderLogs,
 }

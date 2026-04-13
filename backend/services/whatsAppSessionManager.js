@@ -6,33 +6,186 @@ const WhatsAppSession = require('../models/WhatsAppSession')
 
 class WhatsAppSessionManager {
   constructor() {
-    this.client = null
-    this.startingPromise = null
-    this.sessionKey = 'primary'
+    this.clients = new Map()
+    this.startingPromises = new Map()
+    this.defaultSessionKey = 'primary'
   }
 
-  async getSession() {
-    let session = await WhatsAppSession.findOne({ sessionKey: this.sessionKey })
-    if (!session) {
-      session = await WhatsAppSession.create({ sessionKey: this.sessionKey })
+  sanitizeSessionKey(value) {
+    const normalized = String(value || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+
+    return normalized || this.defaultSessionKey
+  }
+
+  buildDefaultDisplayName(sessionKey) {
+    if (sessionKey === this.defaultSessionKey) {
+      return 'Primary Session'
     }
+
+    return sessionKey
+      .split('-')
+      .filter(Boolean)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ')
+  }
+
+  async ensureDefaultSession() {
+    let session = await WhatsAppSession.findOne({ sessionKey: this.defaultSessionKey })
+    if (!session) {
+      session = await WhatsAppSession.create({
+        sessionKey: this.defaultSessionKey,
+        displayName: 'Primary Session',
+        isActive: true,
+      })
+    } else if (!session.displayName) {
+      session.displayName = 'Primary Session'
+      await session.save()
+    }
+
     return session
   }
 
-  hasClient() {
-    return Boolean(this.client)
+  async listSessions() {
+    await this.ensureDefaultSession()
+    const sessions = await WhatsAppSession.find({}).sort({ createdAt: 1 })
+    return sessions
   }
 
-  async updateSession(update) {
+  async getSession(sessionKey = this.defaultSessionKey) {
+    const normalizedKey = this.sanitizeSessionKey(sessionKey)
+    let session = await WhatsAppSession.findOne({ sessionKey: normalizedKey })
+    if (!session) {
+      session = await WhatsAppSession.create({
+        sessionKey: normalizedKey,
+        displayName: this.buildDefaultDisplayName(normalizedKey),
+        isActive: normalizedKey === this.defaultSessionKey,
+      })
+    } else if (!session.displayName) {
+      session.displayName = this.buildDefaultDisplayName(normalizedKey)
+      await session.save()
+    }
+
+    return session
+  }
+
+  async createSession({ sessionKey, displayName }) {
+    const normalizedKey = this.sanitizeSessionKey(sessionKey || displayName)
+    const existing = await WhatsAppSession.findOne({ sessionKey: normalizedKey })
+    if (existing) {
+      throw new Error('A WhatsApp session with this name already exists')
+    }
+
+    const hasActiveSession = await WhatsAppSession.exists({ isActive: true })
+    return WhatsAppSession.create({
+      sessionKey: normalizedKey,
+      displayName: String(displayName || this.buildDefaultDisplayName(normalizedKey)).trim(),
+      isActive: !hasActiveSession,
+    })
+  }
+
+  hasClient(sessionKey) {
+    if (sessionKey) {
+      return this.clients.has(this.sanitizeSessionKey(sessionKey))
+    }
+
+    for (const session of this.clients.values()) {
+      if (session) return true
+    }
+    return false
+  }
+
+  async getActiveSession() {
+    await this.ensureDefaultSession()
+    let session = await WhatsAppSession.findOne({ isActive: true })
+    if (!session) {
+      session = await WhatsAppSession.findOneAndUpdate(
+        { sessionKey: this.defaultSessionKey },
+        { $set: { isActive: true, displayName: 'Primary Session' } },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      )
+    }
+
+    return session
+  }
+
+  async setActiveSession(sessionKey) {
+    const normalizedKey = this.sanitizeSessionKey(sessionKey)
+    const session = await this.getSession(normalizedKey)
+
+    await WhatsAppSession.updateMany({}, { $set: { isActive: false } })
+    await WhatsAppSession.updateOne({ sessionKey: normalizedKey }, { $set: { isActive: true } })
+    return this.getSession(session.sessionKey)
+  }
+
+  async getStatus() {
+    const sessions = await this.listSessions()
+    const activeSession = sessions.find((session) => session.isActive) || null
+
+    return {
+      sessions,
+      activeSessionKey: activeSession?.sessionKey || null,
+    }
+  }
+
+  async updateSession(sessionKey, update) {
+    const normalizedKey = this.sanitizeSessionKey(sessionKey)
     return WhatsAppSession.findOneAndUpdate(
-      { sessionKey: this.sessionKey },
-      { $set: update },
-      { upsert: true, returnDocument: 'after' }
+      { sessionKey: normalizedKey },
+      {
+        $set: {
+          ...update,
+          displayName: update.displayName || undefined,
+        },
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
     )
   }
 
-  getAuthDir() {
+  getAuthBaseDir() {
     return process.env.WHATSAPP_AUTH_DIR || path.join(process.cwd(), '.wwebjs_auth')
+  }
+
+  getAuthDir(sessionKey) {
+    return path.join(this.getAuthBaseDir(), `session-${this.getClientId(sessionKey)}`)
+  }
+
+  getClientId(sessionKey) {
+    return `transport-admin-${this.sanitizeSessionKey(sessionKey)}`
+  }
+
+  getLegacyAuthDir(sessionKey) {
+    const normalizedKey = this.sanitizeSessionKey(sessionKey)
+    if (normalizedKey !== this.defaultSessionKey) {
+      return null
+    }
+
+    return path.join(this.getAuthBaseDir(), 'session-transport-admin')
+  }
+
+  async migrateLegacyAuthDir(sessionKey) {
+    const legacyAuthDir = this.getLegacyAuthDir(sessionKey)
+    if (!legacyAuthDir) return
+
+    const nextAuthDir = this.getAuthDir(sessionKey)
+
+    try {
+      await fs.access(legacyAuthDir)
+    } catch (_error) {
+      return
+    }
+
+    try {
+      await fs.access(nextAuthDir)
+      return
+    } catch (_error) {
+      // target folder does not exist yet
+    }
+
+    await fs.rename(legacyAuthDir, nextAuthDir)
   }
 
   isRecoverableProtocolError(error) {
@@ -45,37 +198,40 @@ class WhatsAppSessionManager {
     )
   }
 
-  async startSession() {
-    if (this.startingPromise) {
-      return this.startingPromise
+  async startSession(sessionKey = this.defaultSessionKey) {
+    const normalizedKey = this.sanitizeSessionKey(sessionKey)
+    if (this.startingPromises.has(normalizedKey)) {
+      return this.startingPromises.get(normalizedKey)
     }
 
-    this.startingPromise = this.startSessionInternal()
+    const startPromise = this.startSessionInternal(normalizedKey)
+    this.startingPromises.set(normalizedKey, startPromise)
     try {
-      return await this.startingPromise
+      return await startPromise
     } finally {
-      this.startingPromise = null
+      this.startingPromises.delete(normalizedKey)
     }
   }
 
-  async startSessionInternal() {
-    const session = await this.getSession()
+  async startSessionInternal(sessionKey) {
+    const session = await this.getSession(sessionKey)
+    const existingClient = this.clients.get(sessionKey)
 
-    if (this.client) {
+    if (existingClient) {
       try {
-        await this.client.getState()
+        await existingClient.getState()
         return session
       } catch (_error) {
-        await this.stopSession()
+        await this.stopSession(sessionKey)
       }
     }
 
-    const authDir = this.getAuthDir()
+    await this.migrateLegacyAuthDir(sessionKey)
 
     const client = new Client({
       authStrategy: new LocalAuth({
-        clientId: 'transport-admin',
-        dataPath: authDir,
+        clientId: this.getClientId(sessionKey),
+        dataPath: this.getAuthBaseDir(),
       }),
       puppeteer: {
         headless: true,
@@ -85,7 +241,7 @@ class WhatsAppSessionManager {
 
     client.on('qr', async (qr) => {
       const qrCodeDataUrl = await QRCode.toDataURL(qr, { width: 300 })
-      await this.updateSession({
+      await this.updateSession(sessionKey, {
         status: 'qr_ready',
         qrCodeDataUrl,
         lastError: null,
@@ -93,14 +249,14 @@ class WhatsAppSessionManager {
     })
 
     client.on('authenticated', async () => {
-      await this.updateSession({
+      await this.updateSession(sessionKey, {
         status: 'initializing',
         lastError: null,
       })
     })
 
     client.on('ready', async () => {
-      await this.updateSession({
+      await this.updateSession(sessionKey, {
         status: 'authenticated',
         phoneNumber: client.info?.wid?.user || null,
         lastConnectedAt: new Date(),
@@ -110,56 +266,60 @@ class WhatsAppSessionManager {
     })
 
     client.on('auth_failure', async (message) => {
-      await this.updateSession({
+      await this.updateSession(sessionKey, {
         status: 'auth_failure',
         lastError: message || 'Authentication failure',
       })
     })
 
     client.on('disconnected', async (reason) => {
-      this.client = null
-      await this.updateSession({
+      this.clients.delete(sessionKey)
+      await this.updateSession(sessionKey, {
         status: 'disconnected',
         qrCodeDataUrl: null,
         lastError: typeof reason === 'string' ? reason : 'Disconnected from WhatsApp Web',
       })
     })
 
-    this.client = client
-    await this.updateSession({ status: 'initializing', lastError: null })
+    this.clients.set(sessionKey, client)
+    await this.updateSession(sessionKey, { status: 'initializing', lastError: null })
     await client.initialize()
-    return this.getSession()
+    return this.getSession(sessionKey)
   }
 
-  async stopSession() {
-    if (this.client) {
+  async stopSession(sessionKey = this.defaultSessionKey) {
+    const normalizedKey = this.sanitizeSessionKey(sessionKey)
+    const client = this.clients.get(normalizedKey)
+
+    if (client) {
       try {
-        await this.client.destroy()
+        await client.destroy()
       } catch (_error) {
         // ignore destroy errors
       }
-      this.client = null
+      this.clients.delete(normalizedKey)
     }
 
-    await this.updateSession({
+    await this.updateSession(normalizedKey, {
       status: 'disconnected',
       qrCodeDataUrl: null,
       lastError: null,
     })
 
-    return this.getSession()
+    return this.getSession(normalizedKey)
   }
 
-  async resetSession() {
-    await this.stopSession()
+  async resetSession(sessionKey = this.defaultSessionKey) {
+    const normalizedKey = this.sanitizeSessionKey(sessionKey)
+    await this.stopSession(normalizedKey)
 
     try {
-      await fs.rm(this.getAuthDir(), { recursive: true, force: true })
+      await fs.rm(this.getAuthDir(normalizedKey), { recursive: true, force: true })
     } catch (_error) {
       // ignore auth dir cleanup errors
     }
 
-    await this.updateSession({
+    await this.updateSession(normalizedKey, {
       status: 'new',
       qrCodeDataUrl: null,
       phoneNumber: null,
@@ -167,18 +327,14 @@ class WhatsAppSessionManager {
       lastError: null,
     })
 
-    return this.getSession()
+    return this.getSession(normalizedKey)
   }
 
   normalizeRecipient(recipient) {
     return String(recipient || '').replace(/[^\d]/g, '')
   }
 
-  async resolveRecipientChatId(recipient) {
-    if (!this.client) {
-      throw new Error('WhatsApp session is not active')
-    }
-
+  async resolveRecipientChatId(client, recipient) {
     const normalized = this.normalizeRecipient(recipient)
     if (!normalized) {
       throw new Error('Recipient number is invalid')
@@ -187,7 +343,7 @@ class WhatsAppSessionManager {
     const candidates = [normalized, `+${normalized}`]
     for (const candidate of candidates) {
       try {
-        const numberId = await this.client.getNumberId(candidate)
+        const numberId = await client.getNumberId(candidate)
         if (numberId?._serialized) {
           return numberId._serialized
         }
@@ -199,36 +355,59 @@ class WhatsAppSessionManager {
     return `${normalized}@c.us`
   }
 
-  async sendTextMessage(recipient, text) {
-    if (!this.client) {
-      throw new Error('WhatsApp session is not active')
+  async getSenderClient(sessionKey) {
+    if (sessionKey) {
+      const normalizedKey = this.sanitizeSessionKey(sessionKey)
+      const client = this.clients.get(normalizedKey)
+      if (!client) {
+        throw new Error('WhatsApp session is not active')
+      }
+      return { client, sessionKey: normalizedKey }
     }
 
+    const activeSession = await this.getActiveSession()
+    const client = this.clients.get(activeSession.sessionKey)
+    if (!client) {
+      throw new Error('Active WhatsApp session is not connected')
+    }
+
+    return { client, sessionKey: activeSession.sessionKey }
+  }
+
+  async sendTextMessage(recipient, text, sessionKey) {
+    const { client, sessionKey: resolvedSessionKey } = await this.getSenderClient(sessionKey)
+
     try {
-      const chatId = await this.resolveRecipientChatId(recipient)
-      const result = await this.client.sendMessage(chatId, text)
+      const chatId = await this.resolveRecipientChatId(client, recipient)
+      const result = await client.sendMessage(chatId, text)
       return result?.id?._serialized || null
     } catch (error) {
       if (this.isRecoverableProtocolError(error)) {
-        await this.stopSession()
+        await this.stopSession(resolvedSessionKey)
         throw new Error('WhatsApp session reset. Please reconnect by scanning QR again.')
       }
       throw error
     }
   }
 
-  async restoreSession() {
-    const session = await this.getSession()
-    if (session.status === 'authenticated' || session.status === 'initializing' || session.status === 'qr_ready') {
-      try {
-        await this.startSession()
-      } catch (error) {
-        await this.updateSession({
-          status: 'disconnected',
-          lastError: `Restore failed: ${error.message}`,
-        })
-      }
-    }
+  async restoreSessions() {
+    const sessions = await this.listSessions()
+    await Promise.all(
+      sessions.map(async (session) => {
+        if (!['authenticated', 'initializing', 'qr_ready'].includes(session.status)) {
+          return
+        }
+
+        try {
+          await this.startSession(session.sessionKey)
+        } catch (error) {
+          await this.updateSession(session.sessionKey, {
+            status: 'disconnected',
+            lastError: `Restore failed: ${error.message}`,
+          })
+        }
+      })
+    )
   }
 }
 

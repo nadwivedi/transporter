@@ -69,8 +69,8 @@ mongoose
       console.log(`Server running on port ${PORT}`)
     })
 
-    whatsAppSessionManager.restoreSession().catch((error) => {
-      console.error('Failed to restore WhatsApp session:', error)
+    whatsAppSessionManager.restoreSessions().catch((error) => {
+      console.error('Failed to restore WhatsApp sessions:', error)
     })
 
     expiryReminderService.start()

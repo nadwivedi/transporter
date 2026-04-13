@@ -16,6 +16,10 @@ const initialLoginForm = {
   password: '',
 }
 
+const initialWhatsAppForm = {
+  displayName: '',
+}
+
 function AppSecure() {
   const [activeSection, setActiveSection] = useState('users')
   const [users, setUsers] = useState([])
@@ -37,12 +41,15 @@ function AppSecure() {
   const [whatsAppState, setWhatsAppState] = useState({
     loading: false,
     actionLoading: false,
-    data: null,
+    sessions: [],
+    activeSessionKey: '',
+    selectedSessionKey: '',
     logs: [],
     logsLoading: false,
     result: '',
     error: '',
   })
+  const [whatsAppForm, setWhatsAppForm] = useState(initialWhatsAppForm)
 
   const apiFetch = async (endpoint, options = {}) => {
     const response = await fetch(`${API_URL}${endpoint}`, {
@@ -133,7 +140,12 @@ function AppSecure() {
       setWhatsAppState((prev) => ({
         ...prev,
         loading: false,
-        data: result.data || null,
+        sessions: result.data?.sessions || [],
+        activeSessionKey: result.data?.activeSessionKey || '',
+        selectedSessionKey:
+          (result.data?.sessions || []).some((session) => session.sessionKey === prev.selectedSessionKey)
+            ? prev.selectedSessionKey
+            : (result.data?.activeSessionKey || result.data?.sessions?.[0]?.sessionKey || ''),
       }))
     } catch (error) {
       console.error('Error fetching WhatsApp status:', error)
@@ -182,7 +194,7 @@ function AppSecure() {
     return () => window.clearInterval(intervalId)
   }, [activeSection, loginState.authenticated])
 
-  const runWhatsAppAction = async (endpoint, successText) => {
+  const runWhatsAppAction = async (sessionKey, endpoint, successText) => {
     try {
       setWhatsAppState((prev) => ({
         ...prev,
@@ -191,14 +203,13 @@ function AppSecure() {
         error: '',
       }))
 
-      const result = await apiFetch(`/api/whatsapp/${endpoint}`, {
+      await apiFetch(`/api/whatsapp/sessions/${encodeURIComponent(sessionKey)}/${endpoint}`, {
         method: 'POST',
       })
 
       setWhatsAppState((prev) => ({
         ...prev,
         actionLoading: false,
-        data: result.data || prev.data,
         result: successText,
       }))
 
@@ -214,8 +225,119 @@ function AppSecure() {
     }
   }
 
+  const createWhatsAppSession = async (e) => {
+    e.preventDefault()
+
+    if (!whatsAppForm.displayName.trim()) {
+      setWhatsAppState((prev) => ({
+        ...prev,
+        error: 'Session name is required',
+        result: '',
+      }))
+      return
+    }
+
+    try {
+      setWhatsAppState((prev) => ({
+        ...prev,
+        actionLoading: true,
+        error: '',
+        result: '',
+      }))
+
+      const result = await apiFetch('/api/whatsapp/sessions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          displayName: whatsAppForm.displayName.trim(),
+        }),
+      })
+
+      setWhatsAppForm(initialWhatsAppForm)
+      setWhatsAppState((prev) => ({
+        ...prev,
+        actionLoading: false,
+        selectedSessionKey: result.data?.sessionKey || prev.selectedSessionKey,
+        result: 'New WhatsApp session added',
+      }))
+      await fetchWhatsAppStatus({ silent: true })
+    } catch (error) {
+      console.error('Error creating WhatsApp session:', error)
+      setWhatsAppState((prev) => ({
+        ...prev,
+        actionLoading: false,
+        error: error.message || 'Failed to create WhatsApp session',
+      }))
+    }
+  }
+
+  const setActiveWhatsAppSession = async (sessionKey) => {
+    try {
+      setWhatsAppState((prev) => ({
+        ...prev,
+        actionLoading: true,
+        error: '',
+        result: '',
+      }))
+
+      await apiFetch(`/api/whatsapp/sessions/${encodeURIComponent(sessionKey)}/activate`, {
+        method: 'POST',
+      })
+
+      setWhatsAppState((prev) => ({
+        ...prev,
+        actionLoading: false,
+        result: 'Active sending session updated',
+      }))
+      await fetchWhatsAppStatus({ silent: true })
+    } catch (error) {
+      console.error('Error setting active WhatsApp session:', error)
+      setWhatsAppState((prev) => ({
+        ...prev,
+        actionLoading: false,
+        error: error.message || 'Failed to set active session',
+      }))
+    }
+  }
+
+  const runReminderNow = async () => {
+    try {
+      setWhatsAppState((prev) => ({
+        ...prev,
+        actionLoading: true,
+        error: '',
+        result: '',
+      }))
+
+      await apiFetch('/api/whatsapp/run-reminders', {
+        method: 'POST',
+      })
+
+      setWhatsAppState((prev) => ({
+        ...prev,
+        actionLoading: false,
+        result: 'Expiry reminders processed',
+      }))
+      await fetchWhatsAppLogs({ silent: true })
+    } catch (error) {
+      console.error('Error running reminders:', error)
+      setWhatsAppState((prev) => ({
+        ...prev,
+        actionLoading: false,
+        error: error.message || 'Failed to run reminders',
+      }))
+    }
+  }
+
+  const selectedWhatsAppSession = useMemo(
+    () => whatsAppState.sessions.find((session) => session.sessionKey === whatsAppState.selectedSessionKey) || null,
+    [whatsAppState.selectedSessionKey, whatsAppState.sessions]
+  )
+
   const whatsAppStatusLabel = useMemo(() => {
-    const status = whatsAppState.data?.status || 'new'
+    const status = selectedWhatsAppSession?.status || 'new'
     switch (status) {
       case 'authenticated':
         return 'Connected'
@@ -230,14 +352,14 @@ function AppSecure() {
       default:
         return 'Not Started'
     }
-  }, [whatsAppState.data])
+  }, [selectedWhatsAppSession])
 
   const whatsAppStatusClass = useMemo(() => {
-    const status = whatsAppState.data?.status || 'new'
+    const status = selectedWhatsAppSession?.status || 'new'
     if (status === 'authenticated') return 'status-active'
     if (status === 'qr_ready' || status === 'initializing') return 'status-pending'
     return 'status-inactive'
-  }, [whatsAppState.data])
+  }, [selectedWhatsAppSession])
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
@@ -256,6 +378,14 @@ function AppSecure() {
     }))
     if (loginState.error) {
       setLoginState((prev) => ({ ...prev, error: '' }))
+    }
+  }
+
+  const handleWhatsAppFormChange = (e) => {
+    const { value } = e.target
+    setWhatsAppForm({ displayName: value })
+    if (whatsAppState.error || whatsAppState.result) {
+      setWhatsAppState((prev) => ({ ...prev, error: '', result: '' }))
     }
   }
 
@@ -330,6 +460,18 @@ function AppSecure() {
     setShowAddUserModal(false)
     setIsEditMode(false)
     setFormData(initialForm)
+    setWhatsAppForm(initialWhatsAppForm)
+    setWhatsAppState({
+      loading: false,
+      actionLoading: false,
+      sessions: [],
+      activeSessionKey: '',
+      selectedSessionKey: '',
+      logs: [],
+      logsLoading: false,
+      result: '',
+      error: '',
+    })
   }
 
   const handleSubmit = async (e) => {
@@ -600,7 +742,7 @@ function AppSecure() {
               <div className="panel-header panel-header-row">
                 <div>
                   <h2>WhatsApp Setup</h2>
-                  <p className="section-text">Scan once from admin. The backend will reuse the saved session and send expiry reminders automatically.</p>
+                  <p className="section-text">See which number is connected, whether the session is active, and add more sessions for automatic WhatsApp sending.</p>
                 </div>
                 <div className="toolbar">
                   <button
@@ -617,73 +759,147 @@ function AppSecure() {
                   <button
                     type="button"
                     className="secondary-btn"
-                    onClick={() => runWhatsAppAction('run-reminders', 'Expiry reminders processed')}
+                    onClick={runReminderNow}
                     disabled={whatsAppState.actionLoading}
                   >
                     Send Reminders Now
                   </button>
-                  <button
-                    type="button"
-                    className="secondary-btn"
-                    onClick={() => runWhatsAppAction('stop', 'WhatsApp connection stopped')}
-                    disabled={whatsAppState.actionLoading}
-                  >
-                    Stop
-                  </button>
-                  <button
-                    type="button"
-                    className="secondary-btn"
-                    onClick={() => runWhatsAppAction('reset', 'Saved session cleared. Scan QR again.')}
-                    disabled={whatsAppState.actionLoading}
-                  >
-                    Reset
-                  </button>
-                  <button
-                    type="button"
-                    className="primary-btn small-btn"
-                    onClick={() => runWhatsAppAction('start', 'WhatsApp session started')}
-                    disabled={whatsAppState.actionLoading}
-                  >
-                    {whatsAppState.actionLoading ? 'Please wait...' : 'Start WhatsApp'}
-                  </button>
                 </div>
+              </div>
+
+              <div className="whatsapp-create-row">
+                <form className="whatsapp-create-form" onSubmit={createWhatsAppSession}>
+                  <label>
+                    <span>New Session Name</span>
+                    <input
+                      type="text"
+                      value={whatsAppForm.displayName}
+                      onChange={handleWhatsAppFormChange}
+                      placeholder="Example: Sales Team 1"
+                    />
+                  </label>
+                  <button type="submit" className="primary-btn small-btn" disabled={whatsAppState.actionLoading}>
+                    {whatsAppState.actionLoading ? 'Please wait...' : 'Add Session'}
+                  </button>
+                </form>
               </div>
 
               <div className="whatsapp-layout">
                 <div className="whatsapp-card">
                   <div className="whatsapp-card-header">
-                    <span className={`status-pill ${whatsAppStatusClass}`}>{whatsAppStatusLabel}</span>
+                    <div>
+                      <p className="eyebrow">All Sessions</p>
+                      <h3 className="subheading">Connected Accounts</h3>
+                    </div>
                   </div>
 
                   {whatsAppState.loading ? (
                     <div className="empty-state">Loading WhatsApp status...</div>
-                  ) : whatsAppState.data?.qrCodeDataUrl ? (
-                    <div className="qr-panel">
-                      <img src={whatsAppState.data.qrCodeDataUrl} alt="WhatsApp QR Code" className="qr-image" />
-                      <p className="section-text">Open WhatsApp on your phone, scan this QR, and keep this backend running.</p>
-                    </div>
+                  ) : whatsAppState.sessions.length === 0 ? (
+                    <div className="empty-state">No WhatsApp sessions found.</div>
                   ) : (
-                    <div className="empty-state">
-                      {whatsAppState.data?.status === 'authenticated'
-                        ? 'WhatsApp is already connected on this backend.'
-                        : 'Click Start WhatsApp to generate a QR code.'}
+                    <div className="session-list">
+                      {whatsAppState.sessions.map((session) => (
+                        <button
+                          type="button"
+                          key={session.sessionKey}
+                          className={`session-item ${whatsAppState.selectedSessionKey === session.sessionKey ? 'session-item-selected' : ''}`}
+                          onClick={() => setWhatsAppState((prev) => ({ ...prev, selectedSessionKey: session.sessionKey }))}
+                        >
+                          <div className="session-item-top">
+                            <strong>{session.displayName || session.sessionKey}</strong>
+                            <span className={`status-pill ${session.status === 'authenticated' ? 'status-active' : session.status === 'qr_ready' || session.status === 'initializing' ? 'status-pending' : 'status-inactive'}`}>
+                              {session.status === 'authenticated'
+                                ? 'Connected'
+                                : session.status === 'qr_ready'
+                                  ? 'Scan QR'
+                                  : session.status === 'initializing'
+                                    ? 'Connecting'
+                                    : session.status === 'auth_failure'
+                                      ? 'Auth Failed'
+                                      : session.status === 'disconnected'
+                                        ? 'Disconnected'
+                                        : 'Not Started'}
+                            </span>
+                          </div>
+                          <div className="session-item-meta">
+                            <span>{session.phoneNumber || 'No number connected'}</span>
+                            <span>{session.isActive ? 'Active sender' : 'Inactive sender'}</span>
+                          </div>
+                        </button>
+                      ))}
                     </div>
                   )}
                 </div>
 
                 <div className="whatsapp-card">
+                  <div className="whatsapp-card-header">
+                    <div>
+                      <p className="eyebrow">Selected Session</p>
+                      <h3 className="subheading">{selectedWhatsAppSession?.displayName || 'Select a session'}</h3>
+                    </div>
+                    {selectedWhatsAppSession ? (
+                      <span className={`status-pill ${whatsAppStatusClass}`}>{whatsAppStatusLabel}</span>
+                    ) : null}
+                  </div>
+
+                  {selectedWhatsAppSession ? (
+                    <div className="toolbar">
+                      <button
+                        type="button"
+                        className="secondary-btn"
+                        onClick={() => setActiveWhatsAppSession(selectedWhatsAppSession.sessionKey)}
+                        disabled={whatsAppState.actionLoading}
+                      >
+                        {selectedWhatsAppSession.isActive ? 'Active Sender' : 'Set Active Sender'}
+                      </button>
+                      <button
+                        type="button"
+                        className="secondary-btn"
+                        onClick={() => runWhatsAppAction(selectedWhatsAppSession.sessionKey, 'stop', 'WhatsApp connection stopped')}
+                        disabled={whatsAppState.actionLoading}
+                      >
+                        Stop
+                      </button>
+                      <button
+                        type="button"
+                        className="secondary-btn"
+                        onClick={() => runWhatsAppAction(selectedWhatsAppSession.sessionKey, 'reset', 'Saved session cleared. Scan QR again.')}
+                        disabled={whatsAppState.actionLoading}
+                      >
+                        Reset
+                      </button>
+                      <button
+                        type="button"
+                        className="primary-btn small-btn"
+                        onClick={() => runWhatsAppAction(selectedWhatsAppSession.sessionKey, 'start', 'WhatsApp session started')}
+                        disabled={whatsAppState.actionLoading}
+                      >
+                        {whatsAppState.actionLoading ? 'Please wait...' : 'Start WhatsApp'}
+                      </button>
+                    </div>
+                  ) : null}
+
                   <div className="details-grid">
                     <div className="detail-item">
-                      <span>Phone</span>
-                      <strong>{whatsAppState.data?.phoneNumber || 'Not connected'}</strong>
+                      <span>Connected Number</span>
+                      <strong>{selectedWhatsAppSession?.phoneNumber || 'Not connected'}</strong>
                     </div>
                     <div className="detail-item">
                       <span>Last Connected</span>
-                      <strong>{whatsAppState.data?.lastConnectedAt ? new Date(whatsAppState.data.lastConnectedAt).toLocaleString() : 'N/A'}</strong>
+                      <strong>{selectedWhatsAppSession?.lastConnectedAt ? new Date(selectedWhatsAppSession.lastConnectedAt).toLocaleString() : 'N/A'}</strong>
+                    </div>
+                    <div className="detail-item">
+                      <span>Session Key</span>
+                      <strong>{selectedWhatsAppSession?.sessionKey || 'N/A'}</strong>
+                    </div>
+                    <div className="detail-item">
+                      <span>Automatic Sender</span>
+                      <strong>{selectedWhatsAppSession?.isActive ? 'Yes, this session sends reminders' : 'No, reminders use another session'}</strong>
                     </div>
                     <div className="detail-item">
                       <span>Saved Session</span>
-                      <strong>{whatsAppState.data?.status === 'authenticated' ? 'Available' : 'Waiting for login'}</strong>
+                      <strong>{selectedWhatsAppSession?.status === 'authenticated' ? 'Available' : 'Waiting for login'}</strong>
                     </div>
                     <div className="detail-item">
                       <span>Auto Reminder Rule</span>
@@ -691,8 +907,15 @@ function AppSecure() {
                     </div>
                   </div>
 
-                  {whatsAppState.data?.lastError ? (
-                    <div className="message message-error">{whatsAppState.data.lastError}</div>
+                  {selectedWhatsAppSession?.qrCodeDataUrl ? (
+                    <div className="qr-panel">
+                      <img src={selectedWhatsAppSession.qrCodeDataUrl} alt="WhatsApp QR Code" className="qr-image" />
+                      <p className="section-text">Open WhatsApp on your phone, scan this QR, and keep this backend running.</p>
+                    </div>
+                  ) : null}
+
+                  {selectedWhatsAppSession?.lastError ? (
+                    <div className="message message-error">{selectedWhatsAppSession.lastError}</div>
                   ) : null}
                   {whatsAppState.error ? (
                     <div className="message message-error">{whatsAppState.error}</div>

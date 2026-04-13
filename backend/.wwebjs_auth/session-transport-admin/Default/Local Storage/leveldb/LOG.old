@@ -1,6 +1,0 @@
-2026/04/12-18:20:26.924 70ec Reusing MANIFEST C:\Users\Naray\OneDrive\Desktop\transport\backend\.wwebjs_auth\session-transport-admin\Default\Local Storage\leveldb/MANIFEST-000001
-2026/04/12-18:20:26.932 70ec Recovering log #8
-2026/04/12-18:20:26.935 70ec Reusing old log C:\Users\Naray\OneDrive\Desktop\transport\backend\.wwebjs_auth\session-transport-admin\Default\Local Storage\leveldb/000008.log 
-2026/04/12-18:21:26.964 653c Level-0 table #11: started
-2026/04/12-18:21:26.986 653c Level-0 table #11: 14578 bytes OK
-2026/04/12-18:21:26.992 653c Delete type=0 #8
