@@ -60,11 +60,9 @@ const buildCookieAttributes = (maxAge, cookieName) => {
   const attributes = ['Path=/', 'HttpOnly', `Max-Age=${maxAge}`]
   const cookieDomain = getCookieDomain(cookieName)
 
-  if (isProduction()) {
-    attributes.push('SameSite=None', 'Secure')
-  } else {
-    attributes.push('SameSite=Lax')
-  }
+  // Set SameSite=None and Secure to support cross-origin domains.
+  // Modern browsers require this for cross-domain cookies to be attached.
+  attributes.push('SameSite=None', 'Secure')
 
   if (cookieDomain) {
     attributes.push(`Domain=${cookieDomain}`)
