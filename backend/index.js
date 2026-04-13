@@ -18,14 +18,21 @@ const expiryReminderService = require('./services/expiryReminderService')
 const app = express()
 const PORT = process.env.PORT || 5000
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/transport'
+const ALLOWED_ORIGINS = new Set([
+  'https://transport.softwarebytes.in',
+  'http://localhost:5173',
+  'http://localhost:5174',
+])
 
 app.use(express.json({ limit: '25mb' }))
 app.use(express.urlencoded({ extended: true, limit: '25mb' }))
 
 app.use((req, res, next) => {
-  const origin = req.headers.origin || '*'
-  res.header('Access-Control-Allow-Origin', origin)
-  res.header('Vary', 'Origin')
+  const origin = req.headers.origin
+  if (origin && ALLOWED_ORIGINS.has(origin)) {
+    res.header('Access-Control-Allow-Origin', origin)
+    res.header('Vary', 'Origin')
+  }
   res.header('Access-Control-Allow-Credentials', 'true')
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization')
   res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS')
