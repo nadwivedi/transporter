@@ -1,39 +1,36 @@
 require('dotenv').config()
 const mongoose = require('mongoose')
 const bcrypt = require('bcryptjs')
+const readline = require('readline')
 const Admin = require('../models/Admin')
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/transport'
 
-const readArgValue = (name) => {
-  const exactPrefix = `--${name}=`
-  const argv = process.argv.slice(2)
-
-  for (let index = 0; index < argv.length; index += 1) {
-    const part = argv[index]
-    if (part.startsWith(exactPrefix)) {
-      return part.slice(exactPrefix.length)
-    }
-
-    if (part === `--${name}`) {
-      return argv[index + 1] || ''
-    }
-  }
-
-  return ''
-}
-
-const email = String(readArgValue('email') || process.env.ADMIN_EMAIL || '')
-  .trim()
-  .toLowerCase()
-const password = String(readArgValue('password') || process.env.ADMIN_PASSWORD || '')
-
-if (!email || !password) {
-  console.error('Usage: npm run create-admin -- --email admin@example.com --password yourPassword')
-  process.exit(1)
-}
+const askQuestion = (rl, prompt) =>
+  new Promise((resolve) => {
+    rl.question(prompt, (answer) => {
+      resolve(String(answer || ''))
+    })
+  })
 
 const run = async () => {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  })
+
+  const rawEmail = await askQuestion(rl, 'Enter admin email: ')
+  const rawPassword = await askQuestion(rl, 'Enter admin password: ')
+  rl.close()
+
+  const email = rawEmail.trim().toLowerCase()
+  const password = rawPassword
+
+  if (!email || !password) {
+    console.error('Email and password are required.')
+    process.exit(1)
+  }
+
   await mongoose.connect(MONGODB_URI)
 
   try {
