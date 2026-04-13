@@ -20,6 +20,7 @@ const PORT = process.env.PORT || 5000
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/transport'
 const ALLOWED_ORIGINS = new Set([
   'https://transport.softwarebytes.in',
+  'https://transporteradmin.vercel.app',
   'http://localhost:5173',
   'http://localhost:5174',
 ])
